@@ -16,7 +16,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
    LICENSE for more details. *)
 
-(** Rope implementation inspired from (and hopefully better than)
+(** Rope implementation inspired from :
 
     Hans Boehm, Russ Atkinson, Michael Plass, "Ropes: an alternative
     to strings", Software Practice and Experience 25, vol. 12 (1995),
@@ -215,41 +215,11 @@ let rec iteri_rec f init = function
 
 let iteri f r = ignore(iteri_rec f 0 r)
 
-(* [balance_concat] is more unsafe than |concat2] (below) because it
-   does not check for the length overflowing int range.  It is also
-   more aggressive in flattening to reduce the height. *)
-let balance_concat rope1 rope2 =
-  let len1 = length rope1
-  and len2 = length rope2 in
-  let len = len1 + len2 in
-  if len1 = 0 then rope2
-  else if len2 = 0 then rope1
-(*   else if len <= small_rope_length then ( *)
-(*     (\* flatten the result *\) *)
-(*     let s = String.create len in *)
-(*     copy_to_substring s 0 rope1; *)
-(*     copy_to_substring s len1 rope2; *)
-(*     Sub(s, 0, len) *)
-(*   ) *)
-  else match rope1, rope2 with
-(*   | Concat(d1, _, l1,ll1, r1), _ when len1 - ll1 <= small_rope_length - len2 -> *)
-(*       let rl1 = len1 - ll1 in *)
-(*       let l = rl1 + len2 in *)
-(*       let s = String.create l in *)
-(*       copy_to_substring s 0 r1; *)
-(*       copy_to_substring s rl1 rope2; *)
-(*       Concat(d1, len, l1,ll1, Sub(s, 0, l)) *)
-(*   | _, Concat(d2, _, l2,ll2, r2) when ll2 <= small_rope_length - len1 -> *)
-(*       let l = len1 + ll2 in *)
-(*       let s = String.create l in *)
-(*       copy_to_substring s 0 rope1; *)
-(*       copy_to_substring s len1 l2; *)
-(*       Concat(d2, len, Sub(s, 0, l), l, r2) *)
-  | _, _ ->
-      let h = 1 + max (height rope1) (height rope2) in
-      Concat(h, len, rope1, len1, rope2)
-;;
+(** Balancing
+ ***********************************************************************)
 
+(* [balance_concat] is a simple concat.  Flattening is done during the
+   balancing (to avoid reflattening at each concat). *)
 let balance_concat rope1 rope2 =
   let len1 = length rope1
   and len2 = length rope2 in
@@ -259,12 +229,11 @@ let balance_concat rope1 rope2 =
     let h = 1 + max (height rope1) (height rope2) in
     Concat(h, len1 + len2, rope1, len1, rope2)
 
-
 (* Invariants for [forest]:
    1) The concatenation of the forest (in decreasing order) with the
-      unscanned part of the rope is equal to the rope being balanced.
+   unscanned part of the rope is equal to the rope being balanced.
    2) All trees in the forest are balanced, i.e. [forest.(n)] is empty or
-      [length forest.(n) >= min_length.(n)].
+   [length forest.(n) >= min_length.(n)].
    3) [height forest.(n) <= n] *)
 (* Add the rope [r] (usually a leaf) to the appropriate slot of
    [forest] (according to [length r]) gathering ropes from lower
@@ -312,8 +281,7 @@ let add_to_forest forest r =
 let rec balance_insert forest rope = match rope with
   | Sub(s, i0, len) ->
       (* If the length of the leaf is small w.r.t. the length of
-         [s], extract it to avoid keeping a ref the larger [s].
-         FIXME: good idea?*)
+         [s], extract it to avoid keeping a ref the larger [s]. *)
       if 25 * len <= String.length s then
         add_nonempty_to_forest forest (Sub(String.sub s i0 len, 0, len))
       else   add_nonempty_to_forest forest rope
@@ -328,14 +296,11 @@ let rec balance_insert forest rope = match rope with
 ;;
 
 let concat_forest forest =
-(*   Array.fold_left (fun sum r -> balance_concat r sum) empty forest *)
-  let sum = ref empty in
-  for n = 0 to Array.length forest - 1 do
-    if is_not_empty forest.(n) then
-      sum := balance_concat forest.(n) !sum;
-    if n = level_flatten then sum := flatten !sum;
-  done;
-  !sum
+  let concat (n, sum) r =
+    let sum = balance_concat r sum in
+    (n+1, if n = level_flatten then flatten sum else sum) in
+  snd(Array.fold_left concat (0,empty) forest)
+
 
 let balance = function
   | Sub(s, i0, len) as r ->
@@ -352,56 +317,14 @@ let balance_if_needed r =
 ;;
 
 (** "Fast" concat for ropes.
+ **********************************************************************
 
     Since concat is one of the few ways a rope can be constructed, it
     must be fast.  Also, this means it is this concat which is
     responsible for the height of small ropes (until balance kicks in
     but the later the better).
 *)
-let rec concat2_nonempty rope1 rope2 =
-  match rope1, rope2 with
-  | Sub(_,_,len1), Sub(_,_,len2) ->
-      let len = len1 + len2 in
-      if len <= max_flatten_length then
-        let s = String.create len in
-        copy_to_substring s 0 rope1;
-        copy_to_substring s len1 rope2;
-        Sub(s, 0, len)
-      else
-        Concat(1, len, rope1, len1, rope2)
-  | Concat(h1, len1, l1,ll1, r1), _ ->
-      let rl1 = len1 - ll1 in
-      let len2 = length rope2 in
-      if rl1 <= max_flatten_length - len2 && height r1 < h1 then
-        let l = rl1 + len2 in
-        let s = String.create l in
-        copy_to_substring s 0 r1;
-        copy_to_substring s rl1 rope2;
-        Concat(h1, len1 + len2, l1,ll1, Sub(s, 0, l))
-          (*      else if height l1 >= height r1 + height rope2 && height r1 <= 5 then
-          (* the height is achieved by the left branch *)
-        let r1_2 = concat2_nonempty r1 rope2 in
-        if height r1_2 <= height l1 then
-          let h = 1 + max (height l1) (height r1_2) in
-          Concat(h, len1 + len2, l1, ll1, r1_2)
-        else
-          let h = 1 + max (height rope1) (height rope2) in
-          Concat(h, len1 + len2, rope1, len1, rope2)
-*)      else
-        let h = 1 + max (height rope1) (height rope2) in
-        Concat(h, len1 + len2, rope1, len1, rope2)
-  | _, Concat(h2, len2, l2,ll2, r2) ->
-      let len1 = length rope1 in
-      if ll2 <= max_flatten_length - len1 && height l2 < h2 then
-        let l = len1 + ll2 in
-        let s = String.create l in
-        copy_to_substring s 0 rope1;
-        copy_to_substring s len1 l2;
-        Concat(h2, len1 + len2, Sub(s, 0, l), l, r2)
-      else
-        let h = 1 + max (height rope1) (height rope2) in
-        Concat(h, len1 + len2, rope1, len1, rope2)
-;;
+
 (* Try to relocate the [leaf] at a position that will not increase the
    height.
    [length(relocate_topright rope leaf _)= length rope + length leaf]
@@ -550,6 +473,8 @@ let concat2 rope1 rope2 =
   end
 ;;
 
+(** Subrope and other ops
+ ***********************************************************************)
 
 (* Are lazy sub-rope nodes really needed? *)
 (* This function assumes that [i], [len] define a valid sub-rope of
@@ -684,7 +609,8 @@ let rec map1 f = function
 let capitalize r = map1 Char.uppercase r
 let uncapitalize r = map1 Char.lowercase r
 
-(* Iterator ---------------------------------------- *)
+(** Iterator
+ ***********************************************************************)
 module Iterator = struct
 
   type t = {
@@ -758,7 +684,8 @@ module Iterator = struct
   let move itr k = itr.i <- itr.i + k
 end
 
-(* (In)equality ---------------------------------------- *)
+(** (In)equality
+ ***********************************************************************)
 
 exception Less
 exception Greater
@@ -800,7 +727,8 @@ let equal r1 r2 =
     with Exit -> false
   )
 
-(* KMP search algo ---------------------------------------- *)
+(** KMP search algo
+ ***********************************************************************)
 let init_next p =
   let m = String.length p in
   let next = Array.create m 0 in
@@ -830,13 +758,15 @@ let search_forward_string p =
     if !j >= m then Iterator.pos i - m else raise Not_found
 
 
-(* Buffer ---------------------------------------- *)
+(** Buffer
+ ***********************************************************************)
 
 module Buffer = struct
 
   (* The content of the buffer consists of the forest concatenated in
      decreasing order plus (at the end) the part stored in [buf]:
-     [forest.(max_height-1) ^ ... ^ forest.(1) ^ forest.(0) ^ String.sub buf 0 pos]
+     [forest.(max_height-1) ^ ... ^ forest.(1) ^ forest.(0)
+                                                     ^ String.sub buf 0 pos]
   *)
   type t = {
     mutable buf: string;
@@ -1060,7 +990,8 @@ let concat sep = function
       Buffer.contents b
 
 
-(* Input/output -- modeled on Pervasive *)
+(** Input/output -- modeled on Pervasive
+ ***********************************************************************)
 
 (* Imported from pervasives.ml: *)
 external input_scan_line : in_channel -> int = "caml_ml_input_scan_line"
@@ -1111,7 +1042,8 @@ let rec number_concat = function
 
 (**/**)
 
-(* Toplevel ---------------------------------------- *)
+(** Toplevel
+ ***********************************************************************)
 
 module Rope_toploop = struct
   open Format
