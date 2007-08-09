@@ -1,0 +1,6 @@
+bench_rope.cmo: rope.cmi 
+bench_rope.cmx: rope.cmx 
+rope.cmo: rope.cmi 
+rope.cmx: rope.cmi 
+rope_test.cmo: rope.cmi 
+rope_test.cmx: rope.cmx 
