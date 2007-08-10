@@ -390,5 +390,8 @@ val unsafe_of_substring : string -> int -> int -> t
 val number_leaves : t -> int
 val number_concat : t -> int
 val print : t -> unit
+val length_leaves : t -> int * int
 
+module IMap : Map.S with type key = int
+val distrib_leaves : t -> int ref IMap.t
 (**/**)

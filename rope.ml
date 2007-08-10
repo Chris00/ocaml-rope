@@ -52,7 +52,7 @@ type t =
 
 type rope = t
 
-let max_flatten_length = 32
+let max_flatten_length = 40
   (** Ropes of length [<= max_flatten_length] may be flattened by
       [concat2].  [max_flatten_length] must be quite
       small, typically comparable to the size of a Concat node. *)
@@ -182,8 +182,7 @@ let to_string r =
   copy_to_substring t 0 r;
   t
 
-(* Flatten a rope.  Same as [of_string(ro_string r)], just faster and
-   avoid unecessary copying. *)
+(* Flatten a rope (avoids unecessary copying). *)
 let flatten r = match r with
   | Sub(_,_,_) -> r
   | _ ->
@@ -218,9 +217,21 @@ let iteri f r = ignore(iteri_rec f 0 r)
 (** Balancing
  ***********************************************************************)
 
-(* [balance_concat] is a simple concat.  Flattening is done during the
-   balancing (to avoid reflattening at each concat). *)
-let balance_concat rope1 rope2 =
+(* [rope2] is a small rope and will be forced to concatenate with the
+   right leaf of rope1. *)
+let rec balance_concat_absorb rope1 rope2 len2 =
+  match rope1 with
+  | Sub(s1, i1, lens1) ->
+      let len = lens1 + len2 in
+(*       if len > 1024 then failwith "balance_concat_absorb"; *)
+      let s = String.create len in
+      String.blit s1 i1 s 0 lens1;
+      copy_to_substring s lens1 rope2;
+      Sub(s, 0, len)
+  | Concat(h, len, l,ll, r) ->
+      Concat(h, len + len2, l,ll, balance_concat_absorb r rope2 len2)
+
+let balance_concat_fast rope1 rope2 =
   let len1 = length rope1
   and len2 = length rope2 in
   if len1 = 0 then rope2
@@ -228,6 +239,22 @@ let balance_concat rope1 rope2 =
   else
     let h = 1 + max (height rope1) (height rope2) in
     Concat(h, len1 + len2, rope1, len1, rope2)
+
+(* [balance_concat] is a simple concat.  Flattening is done during the
+   balancing (to avoid reflattening at each concat). *)
+let balance_concat rope1 rope2 =
+  let len1 = length rope1
+  and len2 = length rope2 in
+  if len1 = 0 then rope2
+  else if len2 = 0 then rope1
+  else if len2 <= 16 then
+    try balance_concat_absorb rope1 rope2 len2
+    with _ -> let h = 1 + max (height rope1) (height rope2) in
+              Concat(h, len1 + len2, rope1, len1, rope2)
+  else
+    let h = 1 + max (height rope1) (height rope2) in
+    Concat(h, len1 + len2, rope1, len1, rope2)
+;;
 
 (* Invariants for [forest]:
    1) The concatenation of the forest (in decreasing order) with the
@@ -247,10 +274,9 @@ let add_nonempty_to_forest forest r =
      is at most [max_height-1] because [min_length.(max_height) = max_int] *)
   while len > min_length.(!n + 1) do
     if is_not_empty forest.(!n) then (
-      sum := balance_concat forest.(!n) !sum;
+      sum := balance_concat_fast forest.(!n) !sum;
       forest.(!n) <- empty;
     );
-    if !n = level_flatten then sum := flatten !sum;
     incr n
   done;
   (* Height of [sum] at most 1 greater than what would be required
@@ -297,7 +323,7 @@ let rec balance_insert forest rope = match rope with
 
 let concat_forest forest =
   let concat (n, sum) r =
-    let sum = balance_concat r sum in
+    let sum = balance_concat_fast r sum in
     (n+1, if n = level_flatten then flatten sum else sum) in
   snd(Array.fold_left concat (0,empty) forest)
 
@@ -313,7 +339,10 @@ let balance = function
       concat_forest forest
 
 let balance_if_needed r =
-  if height r >= height_to_rebalance then balance r else r
+(*   if height r >= height_to_rebalance then balance r else r *)
+  let h = height r in
+  if h >= height_to_rebalance || length r < min_length.(h) then balance r
+  else r
 ;;
 
 (** "Fast" concat for ropes.
@@ -367,6 +396,8 @@ let rec relocate_top rope = match rope with
   | _ -> rope
 ;;
 
+(* We avoid copying too much -- as this may slow down access, even if
+   height is lower. *)
 let rec concat2_nonempty rope1 rope2 =
   match rope1, rope2 with
   | Sub(s1,i1,len1), Sub(s2,i2,len2) ->
@@ -473,15 +504,39 @@ let concat2 rope1 rope2 =
   end
 ;;
 
-(** Subrope and other ops
+(** Subrope
  ***********************************************************************)
+
+let rec sub_to_substring flat j i len = function
+  | Sub(s, i0, lens) ->
+      assert(i >= 0 && i <= lens - len);
+      assert(j >= 0 && j + len <= String.length flat);
+      String.blit s (i0 + i) flat j len
+  | Concat(_, rope_len, l, ll, r) ->
+      let ri = i - ll in
+      if ri >= 0 then (* only right branch *)
+        sub_to_substring flat j ri len r
+      else (* ri < 0 *)
+        let lenr = ri + len in
+        if lenr <= 0 then (* only left branch *)
+          sub_to_substring flat j i len l
+        else ( (* at least one char from the left and right branches *)
+          sub_to_substring flat j         i (-ri) l;
+          sub_to_substring flat (j - ri)  0 lenr r;
+        )
+
+let flatten_subrope rope i len =
+  let flat = String.create len in
+  sub_to_substring flat 0 i len rope;
+  Sub(flat, 0, len)
+;;
 
 (* Are lazy sub-rope nodes really needed? *)
 (* This function assumes that [i], [len] define a valid sub-rope of
-   the last arg. *)
+   the last arg.  *)
 let rec sub_rec i len = function
-  | Sub(s, i0, slen) ->
-      assert(i >= 0 && i <= slen - len);
+  | Sub(s, i0, lens) ->
+      assert(i >= 0 && i <= lens - len);
       Sub(s, i0 + i, len)
   | Concat(_, rope_len, l, ll, r) ->
       let rl = rope_len - ll in
@@ -499,16 +554,21 @@ let rec sub_rec i len = function
           let l' = if i = 0 then l else sub_rec i (-ri) l
           and r' = if rlen = rl then r else sub_rec 0 rlen r in
           let h = 1 + max (height l') (height r') in
-          (* FIXME: do we have to use this opportunity to flatten
-             some subtrees?  concat2 ?  In any case, the tree we get
-             is no worse than the initial tree. *)
+          (* FIXME: do we have to use this opportunity to flatten some
+             subtrees?  In any case, the height of tree we get is no
+             worse than the initial tree (but the length may be much
+             smaller). *)
           Concat(h, len, l', -ri, r')
+
 
 let sub r i len =
   if i < 0 || len < 0 || i > length r - len then invalid_arg "Rope.sub"
   else if len = 0 then empty
   else sub_rec i len r
 
+
+(** String alike functions
+ ***********************************************************************)
 
 (* Return the index of [c] in [s.[i .. i1-1]] plus the [offset] or
    [-1] if not found. *)
@@ -939,11 +999,11 @@ module Buffer = struct
            Concat the ropes of inferior length and append the part of [buf] *)
         let rem_len = len - buf_i1 in
         while buf_i1 > min_length.(!n + 1) && length !sum < rem_len do
-          sum := balance_concat b.forest.(!n) !sum;
+          sum := balance_concat_fast b.forest.(!n) !sum;
           if !n = level_flatten then sum := flatten !sum;
           incr n
         done;
-        sum := balance_concat !sum (Sub(String.sub b.buf 0 buf_i1, 0, buf_i1))
+        sum := balance_concat_fast !sum (Sub(String.sub b.buf 0 buf_i1, 0, buf_i1))
       )
       else (
         (* Subrope in the forest.  Skip the forest elements until
@@ -956,8 +1016,9 @@ module Buffer = struct
       (* Add more forest elements until we get at least the desired length *)
       while length !sum < len do
         assert(!n < max_height);
-        sum := balance_concat b.forest.(!n) !sum;
-        if !n = level_flatten then sum := flatten !sum;
+        sum := balance_concat_fast b.forest.(!n) !sum;
+(* FIXME: Check how this line may generate a 1Mb leaf: *)
+(*         if !n = level_flatten then sum := flatten !sum; *)
         incr n
       done;
       let extra = length !sum - len in
@@ -1039,6 +1100,31 @@ let rec number_leaves = function
 let rec number_concat = function
   | Sub(_,_,_) -> 0
   | Concat(_,_, l,_, r) -> 1 + number_concat l + number_concat r
+
+let rec length_leaves = function
+  | Sub(_,_, len) -> (len, len)
+  | Concat(_,_, l,_, r) ->
+      let (min1,max1) = length_leaves l
+      and (min2,max2) = length_leaves r in
+      (min min1 min2, max max1 max2)
+
+
+module IMap = Map.Make(struct
+  type t = int
+  let compare = Pervasives.compare
+end)
+
+let distrib_leaves =
+  let rec add_leaves m = function
+    | Sub(_,_,len) ->
+        (try incr(IMap.find len !m)
+          with _ -> m := IMap.add len (ref 1) !m)
+    | Concat(_,_, l,_, r) -> add_leaves m l; add_leaves m r in
+  fun r ->
+    let m = ref(IMap.empty) in
+    add_leaves m r;
+    !m
+
 
 (**/**)
 
