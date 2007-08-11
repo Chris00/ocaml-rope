@@ -1,12 +1,15 @@
+hardcopy = 1
 
-set terminal png size 650,800
+if (hardcopy) set terminal png size 650,800
 set grid
 set key left
 
 set logscale x
-set output "append.png"
+if (hardcopy) set output "append.png"; else \
+  set terminal wxt 1 enhanced raise
 set multiplot layout 2,1 downwards
 set title "Min. unitary append time"
+#plot [:] [1.5e-7:5e-7]
 plot \
    "append.dat" using 1:2 with linespoints title "Tiny (unbalanced)", \
    "append.dat" using 1:4 with linespoints title "FullFeatured (unbalanced)", \
@@ -22,7 +25,7 @@ plot \
 unset multiplot
 unset ylabel
 
-set output "get.png"
+if (hardcopy) set output "get.png"; else set terminal wxt 2 raise
 set multiplot layout 2,1 downwards
 set title "Min. unitary random get time"
 plot \
@@ -41,7 +44,7 @@ plot \
 unset multiplot
 unset ylabel
 
-set output "sub.png"
+if (hardcopy) set output "sub.png"; else set terminal wxt 3 raise
 set multiplot layout 2,1 downwards
 set title "Min. unitary random sub time"
 plot \

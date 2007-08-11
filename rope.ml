@@ -537,6 +537,9 @@ let sub rope i len =
   if i < 0 || len < 0 || i > len_rope - len then invalid_arg "Rope.sub"
   else if len = 0 then empty
   else if len <= 1024 && len_rope >= 16384 then flatten_subrope rope i len
+    (* The benefit of flattening such subropes (and constant) has been
+       seen experimentally.  It is not clear what the "exact" rule
+       should be. *)
   else sub_rec i len rope
 
 

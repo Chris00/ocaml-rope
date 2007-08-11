@@ -15,7 +15,7 @@ bm_ropes.byte: ../rope.cma tinyRope.cmo bm_ropes.ml
 	$(OCAMLC) -o $@ $(OCAMLC_FLAGS) $(LIBS:.cmxa=.cma) $^
 
 bench: bm_ropes.native
-	./$< && gnuplot bm_ropes.plot
+	./$< && gnuplot -persist bm_ropes.plot
 
 
 OCAMLC     ?= ocamlc

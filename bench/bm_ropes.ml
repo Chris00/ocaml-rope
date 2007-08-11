@@ -42,14 +42,14 @@ let datapoints =
   let d = max_pox10 - min_pow10 in
   let pow10_of j = Array.init d (fun i -> j * pow 10 (i + min_pow10)) in
   Array.concat (List.map pow10_of [1; 2; 3; 5; 17; 37; 51; 91; 201]
-                   (*                  @ [ [|max_int / 2 |] ] *)
+                 @ [ [|max_int / 2 |] ]
   )
 (* FIXME: for max_int, TinyRope segfaults!!! *)
 
 let datapoints2 =
   Array.concat [
     (Array.init 20 (fun _ -> 10000 + Random.int 10_000_000));
-    (Array.init 20 (fun _ -> 10_000_000 + Random.int 50_000_000))
+    (Array.init 20 (fun _ -> 10_000_000 + Random.int 50_000_000));
   ]
 
 
