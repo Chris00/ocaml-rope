@@ -19,6 +19,7 @@
    LICENSE for more details. *)
 
 open Printf
+let () = Random.self_init()
 
 let nsamples = 30
 let n_ops = 1000
@@ -38,11 +39,16 @@ let min_pow10 = 2
 let max_pox10 = 7
 
 let rec pow n = function 0 -> 1 | i -> n * pow n (i - 1)
+let list_init n f =
+  let rec make acc n = if n < 0 then acc else make (f n :: acc) (n - 1) in
+  make [] (n-1)
+
 let datapoints =
+  let basis = [1; 2; 3; 5; 17; 37; 53; 91; 201] in
+  let basis = List.sort compare (list_init 15 (fun _ -> 1 + Random.int 200)) in
   let d = max_pox10 - min_pow10 in
   let pow10_of j = Array.init d (fun i -> j * pow 10 (i + min_pow10)) in
-  Array.concat (List.map pow10_of [1; 2; 3; 5; 17; 37; 51; 91; 201]
-                 @ [ [|max_int / 2 |] ]
+  Array.concat (List.map pow10_of basis @ [ [|max_int / 2 |] ]
   )
 (* FIXME: for max_int, TinyRope segfaults!!! *)
 
@@ -59,8 +65,6 @@ let datapoints_ordered =
   let d = Array.copy datapoints in
   Array.sort compare d;
   d
-
-let () = Random.self_init()
 
 (* just for laughs  *)
 let basic_loop_overhead =

@@ -5,8 +5,9 @@ INC=-I ..
 OCAMLOPT_FLAGS=-dtypes -inline 10 $(UNSAFE) $(INC)
 OCAMLC_FLAGS=-g $(INC)
 
+.PHONY: default byte bench bench.byte
 default: bench
-byte: bm_ropes.byte
+byte: bench.byte
 
 bm_ropes.native: ../rope.cmxa tinyRope.cmx bm_ropes.ml
 	$(OCAMLOPT) -o $@ $(OCAMLOPT_FLAGS) $(LIBS) $^
@@ -15,6 +16,9 @@ bm_ropes.byte: ../rope.cma tinyRope.cmo bm_ropes.ml
 	$(OCAMLC) -o $@ $(OCAMLC_FLAGS) $(LIBS:.cmxa=.cma) $^
 
 bench: bm_ropes.native
+	./$< && gnuplot -persist bm_ropes.plot
+
+bench.byte: bm_ropes.byte
 	./$< && gnuplot -persist bm_ropes.plot
 
 

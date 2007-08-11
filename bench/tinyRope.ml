@@ -84,7 +84,7 @@ let max_height = 48
  * half-filled *)
 let leaf_size = 256
 (* let leaf_size = 128 *)
-let leaf_size = 64
+(* let leaf_size = 64 *)
 let leaf_size = 32
 
 (* =end *)
