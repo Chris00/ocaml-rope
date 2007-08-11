@@ -17,12 +17,13 @@
    LICENSE for more details. *)
 
 
-(** Ropes are a scalable string implementation: they are designed for
-    efficient operation that involve the string as a whole.
-    Operations such as concatenation, and substring take time that is
-    nearly independent of the length of the string.  Unlike strings,
-    ropes are a reasonable representation for very long strings such
-    as edit buffers or mail messages.
+(** Ropes ("heavyweight strings") are a scalable string
+    implementation: they are designed for efficient operation that
+    involve the string as a whole.  Operations such as concatenation,
+    and substring take time that is nearly independent of the length
+    of the string.  Unlike strings, ropes are a reasonable
+    representation for very long strings such as edit buffers or mail
+    messages.
 
     Advantages:
     - No length limitation (contrarily to strings)
@@ -199,7 +200,7 @@ val search_forward_string : string -> t -> int -> int
     Input and output functions for ropes modelled on the standard
     library [Pervasives]. *)
 
-val input_line : ?leaf_size:int -> in_channel -> t
+val input_line : ?leaf_length:int -> in_channel -> t
   (** Read characters from the given input channel, until a newline
       character is encountered.  Return the rope of all characters read,
       without the newline character at the end.
@@ -244,9 +245,11 @@ val balance : t -> t
 
 val height : t -> int
   (** [depth r] returns the depth of the rope [r].  This information
-      may be useful to decide whether you want to re-balance. This is
-      implementation dependent and may change from one version to the
-      next. *)
+      may be useful to decide whether you want to re-balance. *)
+
+val rebalancing_height : int
+  (** The rope will be rebalanced by some functions it its height is
+      greater or equal to [rebalancing_height]. *)
 
 
 (** {2 Submodules} *)

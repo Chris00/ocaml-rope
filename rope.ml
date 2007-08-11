@@ -52,7 +52,7 @@ type t =
 
 type rope = t
 
-let max_flatten_length = 40
+let max_flatten_length = 32
   (** Ropes of length [<= max_flatten_length] may be flattened by
       [concat2].  [max_flatten_length] must be quite
       small, typically comparable to the size of a Concat node. *)
@@ -92,7 +92,7 @@ let min_length, max_height =
     assert false
   with Exit -> m, !i
 
-let height_to_rebalance = max_height
+let rebalancing_height = max_height - 1
   (* Beyond this height, implicit balance will be done.  This value
      allows gross inefficiencies while not being too time consuming.
      For example, explicit rebalancing did not improve the running
@@ -217,44 +217,15 @@ let iteri f r = ignore(iteri_rec f 0 r)
 (** Balancing
  ***********************************************************************)
 
-(* [rope2] is a small rope and will be forced to concatenate with the
-   right leaf of rope1. *)
-let rec balance_concat_absorb rope1 rope2 len2 =
-  match rope1 with
-  | Sub(s1, i1, lens1) ->
-      let len = lens1 + len2 in
-(*       if len > 1024 then failwith "balance_concat_absorb"; *)
-      let s = String.create len in
-      String.blit s1 i1 s 0 lens1;
-      copy_to_substring s lens1 rope2;
-      Sub(s, 0, len)
-  | Concat(h, len, l,ll, r) ->
-      Concat(h, len + len2, l,ll, balance_concat_absorb r rope2 len2)
-
-let balance_concat_fast rope1 rope2 =
-  let len1 = length rope1
-  and len2 = length rope2 in
-  if len1 = 0 then rope2
-  else if len2 = 0 then rope1
-  else
-    let h = 1 + max (height rope1) (height rope2) in
-    Concat(h, len1 + len2, rope1, len1, rope2)
-
-(* [balance_concat] is a simple concat.  Flattening is done during the
-   balancing (to avoid reflattening at each concat). *)
+(* Fast, no fuss, concatenation. *)
 let balance_concat rope1 rope2 =
   let len1 = length rope1
   and len2 = length rope2 in
   if len1 = 0 then rope2
   else if len2 = 0 then rope1
-  else if len2 <= 16 then
-    try balance_concat_absorb rope1 rope2 len2
-    with _ -> let h = 1 + max (height rope1) (height rope2) in
-              Concat(h, len1 + len2, rope1, len1, rope2)
   else
     let h = 1 + max (height rope1) (height rope2) in
     Concat(h, len1 + len2, rope1, len1, rope2)
-;;
 
 (* Invariants for [forest]:
    1) The concatenation of the forest (in decreasing order) with the
@@ -274,9 +245,10 @@ let add_nonempty_to_forest forest r =
      is at most [max_height-1] because [min_length.(max_height) = max_int] *)
   while len > min_length.(!n + 1) do
     if is_not_empty forest.(!n) then (
-      sum := balance_concat_fast forest.(!n) !sum;
+      sum := balance_concat forest.(!n) !sum;
       forest.(!n) <- empty;
     );
+    if !n = level_flatten then sum := flatten !sum;
     incr n
   done;
   (* Height of [sum] at most 1 greater than what would be required
@@ -323,7 +295,7 @@ let rec balance_insert forest rope = match rope with
 
 let concat_forest forest =
   let concat (n, sum) r =
-    let sum = balance_concat_fast r sum in
+    let sum = balance_concat r sum in
     (n+1, if n = level_flatten then flatten sum else sum) in
   snd(Array.fold_left concat (0,empty) forest)
 
@@ -338,21 +310,20 @@ let balance = function
       balance_insert forest r;
       concat_forest forest
 
+(* Only rebalance on the height.  Also doing it when [length r
+   < min_length.(height r)] ask for too many balancing and thus is slower. *)
 let balance_if_needed r =
-(*   if height r >= height_to_rebalance then balance r else r *)
-  let h = height r in
-  if h >= height_to_rebalance || length r < min_length.(h) then balance r
-  else r
-;;
+  if height r >= rebalancing_height then balance r else r
+
 
 (** "Fast" concat for ropes.
  **********************************************************************
 
-    Since concat is one of the few ways a rope can be constructed, it
-    must be fast.  Also, this means it is this concat which is
-    responsible for the height of small ropes (until balance kicks in
-    but the later the better).
-*)
+ * Since concat is one of the few ways a rope can be constructed, it
+ * must be fast.  Also, this means it is this concat which is
+ * responsible for the height of small ropes (until balance kicks in
+ * but the later the better).
+ *)
 
 (* Try to relocate the [leaf] at a position that will not increase the
    height.
@@ -495,11 +466,11 @@ let concat2 rope1 rope2 =
     if len < len1 (* overflow *) then
       failwith "Rope.concat2: the length of the resulting rope exceeds max_int";
     let h = 1 + max (height rope1) (height rope2) in
-    if h >= height_to_rebalance then
+    if h >= rebalancing_height then
       (* We will need to rebalance anyway, so do a simple concat *)
       balance (Concat(h, len, rope1, len1, rope2))
     else
-      (* No automatic rebalancing *)
+      (* No automatic rebalancing -- experimentally lead to faster exec *)
       concat2_nonempty rope1 rope2
   end
 ;;
@@ -674,10 +645,14 @@ let uncapitalize r = map1 Char.lowercase r
 module Iterator = struct
 
   type t = {
-    r: rope;
-    len: int; (* = length r; avoids to recompute it again and again *)
+    rope: rope;
+    len: int; (* = length rope; avoids to recompute it again and again
+                 for bound checks *)
     mutable i: int; (* current position in the rope; it is always a
                        valid position of the rope or [-1]. *)
+    mutable path: (rope * int) list;
+    (* path to the current leaf with global range.  First elements are
+       closer to the leaf, last element is the full rope. *)
     mutable current: string; (* local cache of current leaf *)
     mutable current_g0: int;
     (* global index of the beginning of current string.
@@ -688,40 +663,66 @@ module Iterator = struct
     mutable current_offset: int; (* = i0 - current_g0 *)
   }
 
-  let rec set_current_for_index_rec itr g0 i = function
+  (* [rewind_path i path] return the tail of the path s.t. the first
+     element of the tail contains the global location [i] -- one must
+     then search for the leaf from there. *)
+  let rec rewind_path itr i = function
+    | [] -> assert false
+    | ((node, g0) :: tl) as path ->
+        if i < g0 || g0 + length node <= i then rewind_path itr i tl
+        else set_current_for_index_rec itr path g0 (i - g0) node
+
+  (* [g0] is the global index (of [itr.rope]) of the beginning of the
+     node we are examining (the first of the [path]).
+     [i] is the _local_ index (of the current node) that we seek the leaf for *)
+  and set_current_for_index_rec itr path g0 i = function
     | Sub(s, i0, len) ->
         assert(0 <= i && i < len);
+        itr.path <- path;
+        (* we do not need to add the [Sub] node to the path because
+           when we will rewind it, we are sure the index will not be
+           in the leaf. *)
         itr.current <- s;
         itr.current_g0 <- g0;
         itr.current_g1 <- g0 + len;
         itr.current_offset <- i0 - g0
-    | Concat(_, _, l,ll, r) ->
-        if i < ll then set_current_for_index_rec itr g0 i l
-        else set_current_for_index_rec itr (g0 + ll) (i - ll) r
+    | Concat(_, len, l,ll, r) ->
+        if i < ll then
+          let path = (l, g0) :: path in
+          set_current_for_index_rec itr path g0 i l
+        else
+          let g0 = g0 + ll in
+          let path = (r, g0) :: path in
+          set_current_for_index_rec itr path g0 (i - ll) r
 
-  let rope itr = itr.r
+  let set_current_for_index itr =
+(*     rewind_path itr itr.i itr.path *)
+    set_current_for_index_rec itr [] 0 itr.i itr.rope
+
+  let rope itr = itr.rope
 
   let make r i0 =
     let len = length r in
     let itr =
-      { r = r;
+      { rope = balance_if_needed r;
         len = len;
         i = i0;
+        path = [(r, 0)]; (* the whole rope *)
         current = ""; current_offset = 0;
         current_g0 = 0; current_g1 = 0;
-        (* empty range, important if not set! *)
+        (* empty range, important if [current] not set! *)
       } in
     if i0 >= 0 && i0 < len then
-      set_current_for_index_rec itr 0 i0 r; (* force [current] to be set *)
+      set_current_for_index itr; (* force [current] to be set *)
     itr
 
   let peek itr i =
     if i < 0 || i >= itr.len then raise(Out_of_bounds "Rope.Iterator.peek")
     else (
       if itr.current_g0 <= i && i < itr.current_g1 then
-        String.get itr.current (i + itr.current_offset)
+        itr.current.[i + itr.current_offset]
       else
-        get itr.r i (* rope get *)
+        get itr.rope i (* rope get *)
     )
 
   let get itr =
@@ -729,8 +730,8 @@ module Iterator = struct
     if i < 0 || i >= itr.len then raise(Out_of_bounds "Rope.Iterator.get")
     else (
       if i < itr.current_g0 || i >= itr.current_g1 then
-        set_current_for_index_rec itr 0 i itr.r; (* out of local bounds *)
-      String.get itr.current (i + itr.current_offset)
+        set_current_for_index itr; (* out of local bounds *)
+      itr.current.[i + itr.current_offset]
     )
 
   let pos itr = itr.i
@@ -999,11 +1000,11 @@ module Buffer = struct
            Concat the ropes of inferior length and append the part of [buf] *)
         let rem_len = len - buf_i1 in
         while buf_i1 > min_length.(!n + 1) && length !sum < rem_len do
-          sum := balance_concat_fast b.forest.(!n) !sum;
+          sum := balance_concat b.forest.(!n) !sum;
           if !n = level_flatten then sum := flatten !sum;
           incr n
         done;
-        sum := balance_concat_fast !sum (Sub(String.sub b.buf 0 buf_i1, 0, buf_i1))
+        sum := balance_concat !sum (Sub(String.sub b.buf 0 buf_i1, 0, buf_i1))
       )
       else (
         (* Subrope in the forest.  Skip the forest elements until
@@ -1016,7 +1017,7 @@ module Buffer = struct
       (* Add more forest elements until we get at least the desired length *)
       while length !sum < len do
         assert(!n < max_height);
-        sum := balance_concat_fast b.forest.(!n) !sum;
+        sum := balance_concat b.forest.(!n) !sum;
 (* FIXME: Check how this line may generate a 1Mb leaf: *)
 (*         if !n = level_flatten then sum := flatten !sum; *)
         incr n
@@ -1057,8 +1058,8 @@ let concat sep = function
 (* Imported from pervasives.ml: *)
 external input_scan_line : in_channel -> int = "caml_ml_input_scan_line"
 
-let input_line ?(leaf_size=128) chan =
-  let b = Buffer.create leaf_size in
+let input_line ?(leaf_length=128) chan =
+  let b = Buffer.create leaf_length in
   let rec scan () =
     let n = input_scan_line chan in
     if n = 0 then                   (* n = 0: we are at EOF *)

@@ -1,4 +1,6 @@
 VERSION=0.2
+SF_WEB  = /home/groups/o/oc/ocaml-rope/htdocs
+SRC_WEB	= NONE
 
 UNSAFE=-unsafe -noassert # speed gained by this is small
 OCAMLC_FLAGS= -dtypes -g $(UNSAFE)
@@ -32,6 +34,27 @@ $(TARBALL):
 	cp $(DIST_FILES) $(TARBALL_DIR)/
 	tar -jvcf $@ $(TARBALL_DIR)
 	rm -rf $(TARBALL_DIR)
+
+
+# Release a Sourceforge tarball and publish the HTML doc
+.PHONY: web upload
+web: doc
+	@ if [ -d doc ] ; then \
+	  scp -r doc/ shell.sf.net:$(SF_WEB)/ \
+	  && echo "*** Published documentation on SF" ; \
+	fi
+	@ if [ -d $(SRC_WEB)/ ] ; then \
+	  scp $(SRC_WEB)/*.html $(SRC_WEB)/*.jpg LICENSE \
+	    shell.sf.net:$(SF_WEB) \
+	  && echo "*** Published web site ($(SRC_WEB)/) on SF" ; \
+	fi
+
+upload: dist
+	@ if [ -z "$(PKG_TARBALL)" ]; then \
+		echo "PKG_TARBALL not defined"; exit 1; fi
+	echo -e "bin\ncd incoming\nput $(PKG_TARBALL)" \
+	  | ncftp -p chris_77@users.sf.net upload.sourceforge.net \
+	  && echo "*** Uploaded $(PKG_TARBALL) to SF"
 
 
 OCAMLC     ?= ocamlc
