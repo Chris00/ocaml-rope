@@ -532,10 +532,12 @@ let rec sub_rec i len = function
           Concat(h, len, l', -ri, r')
 
 
-let sub r i len =
-  if i < 0 || len < 0 || i > length r - len then invalid_arg "Rope.sub"
+let sub rope i len =
+  let len_rope = length rope in
+  if i < 0 || len < 0 || i > len_rope - len then invalid_arg "Rope.sub"
   else if len = 0 then empty
-  else sub_rec i len r
+  else if len <= 1024 && len_rope >= 16384 then flatten_subrope rope i len
+  else sub_rec i len rope
 
 
 (** String alike functions
@@ -663,41 +665,23 @@ module Iterator = struct
     mutable current_offset: int; (* = i0 - current_g0 *)
   }
 
-  (* [rewind_path i path] return the tail of the path s.t. the first
-     element of the tail contains the global location [i] -- one must
-     then search for the leaf from there. *)
-  let rec rewind_path itr i = function
-    | [] -> assert false
-    | ((node, g0) :: tl) as path ->
-        if i < g0 || g0 + length node <= i then rewind_path itr i tl
-        else set_current_for_index_rec itr path g0 (i - g0) node
 
   (* [g0] is the global index (of [itr.rope]) of the beginning of the
-     node we are examining (the first of the [path]).
+     node we are examining.
      [i] is the _local_ index (of the current node) that we seek the leaf for *)
-  and set_current_for_index_rec itr path g0 i = function
+  let rec set_current_for_index_rec itr g0 i = function
     | Sub(s, i0, len) ->
         assert(0 <= i && i < len);
-        itr.path <- path;
-        (* we do not need to add the [Sub] node to the path because
-           when we will rewind it, we are sure the index will not be
-           in the leaf. *)
         itr.current <- s;
         itr.current_g0 <- g0;
         itr.current_g1 <- g0 + len;
         itr.current_offset <- i0 - g0
     | Concat(_, len, l,ll, r) ->
-        if i < ll then
-          let path = (l, g0) :: path in
-          set_current_for_index_rec itr path g0 i l
-        else
-          let g0 = g0 + ll in
-          let path = (r, g0) :: path in
-          set_current_for_index_rec itr path g0 (i - ll) r
+        if i < ll then set_current_for_index_rec itr g0 i l
+        else set_current_for_index_rec itr (g0 + ll) (i - ll) r
 
   let set_current_for_index itr =
-(*     rewind_path itr itr.i itr.path *)
-    set_current_for_index_rec itr [] 0 itr.i itr.rope
+    set_current_for_index_rec itr 0 itr.i itr.rope
 
   let rope itr = itr.rope
 

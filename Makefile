@@ -24,6 +24,10 @@ bench_rope.native: rope.cmxa bench_rope.ml
 	$(OCAMLOPT) -o $@ $(OCAMLOPT_FLAGS=) $(BENCHMARK_INC) \
 	  unix.cmxa benchmark.cmxa  $^
 
+.PHONY: bench
+bench: rope.cmxa
+	cd bench; $(MAKE)
+
 doc: $(wildcard *.mli)
 	[ -d "$@" ] || mkdir $@
 	$(OCAMLDOC) -html -d $@ $^
@@ -99,3 +103,4 @@ clean::
 	$(RM) -f *.cm{i,o,x,a,xa} *.annot *.o *.a *~
 	rm -rf doc/
 	find . -type f -perm -u=x -exec rm -f {} \;
+	cd bench; $(MAKE) clean
