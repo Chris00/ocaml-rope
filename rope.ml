@@ -67,7 +67,9 @@ let extract_sub_length = small_rope_length / 2
       release the original string). *)
 
 let level_flatten = 12
-  (** When balancing, flatten the rope at level [level_flatten]. *)
+  (** When balancing, flatten the rope at level [level_flatten].  The
+      sum of [min_length.(n)], [0 <= n <= level_flatten] must be of te
+      same order as [max_flatten_length]. *)
 
 let max_relocate_height = 35
   (** Only try to relocate rop leaves if the height of the tree is
