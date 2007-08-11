@@ -53,7 +53,7 @@ plot \
    "sub.dat" using 1:6 with lines title "Tiny (balanced)", \
    "sub.dat" using 1:8 with lines title "FullFeatured (balanced)"
 set title ""
-set ylabel "depth"
+set ylabel "depth (average after sub)"
 plot \
    "sub.dat" using 1:3 with linespoints title "Tiny (unbalanced)", \
    "sub.dat" using 1:5 with linespoints title "FullFeatured (unbalanced)", \

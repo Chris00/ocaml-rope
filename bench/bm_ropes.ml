@@ -90,8 +90,8 @@ let time ~msg f x =
 let sample msg f x =
   print_string msg;
   let samples =
-    Array.init nsamples (fun i -> printf "%2d/%4d\r%!" (i + 1) nsamples; f x) in
-  printf "               \r%!";
+    Array.init nsamples (fun i -> printf "\r%2d/%4d%!" (i + 1) nsamples; f x) in
+  printf "\r               \r%!";
   let min_sample (tmin,_) (t,d) = (min tmin t, d) in
   Array.fold_left min_sample (max_float, max_int) samples
 (*  let sum_sample (tsum, _) (t,d) = (tsum +. t, d) in
@@ -180,11 +180,13 @@ struct
   let sub_time size =
     let r = make_rope size in
     let t0 = Unix.gettimeofday () in
+    let h = ref 0 in
     for i = 0 to n_ops - 1 do
-      ignore(M.sub r 0 (Random.int size));
+      h := !h + M.height(M.sub r 0 (Random.int size));
     done;
     let dt = (Unix.gettimeofday () -. t0) in
-    (dt -. random_loop_overhead) /. float n_ops,  M.height r
+    (dt -. random_loop_overhead) /. float n_ops,
+    truncate(0.5 +. float !h /. float n_ops) (* round *)
 
   let measure_sub_time size =
     let msg = sprintf "Sub time for %s of size %d\n%!" M.name size in
