@@ -52,21 +52,26 @@ type t =
 
 type rope = t
 
-let max_flatten_length = 32
-  (** Ropes of length [<= max_flatten_length] may be flattened by
-      [concat2].  [max_flatten_length] must be quite
-      small, typically comparable to the size of a Concat node. *)
+let small_rope_length = 32
+  (** Use this as leaf when creating fresh leaves.  Also sub-ropes of
+      length [<= small_rope_length] may be flattened by [concat2].
+      This value must be quite small, typically comparable to the size
+      of a [Concat] node. *)
 
-let extract_sub_length = max_flatten_length / 2
+let max_flatten_length = 1024
+  (** When deciding whther to flatten a rope, only those if length [<=
+      max_flatten_length] will be. *)
+
+let extract_sub_length = small_rope_length / 2
   (** When balancing, copy the substrings with this length or less (=>
       release the original string). *)
 
 let level_flatten = 12
   (** When balancing, flatten the rope at level [level_flatten]. *)
 
-let small_rope_length = 32
-  (** Use this as leaf when creating fresh leaves. *)
-
+let max_relocate_height = 35
+  (** Only try to relocate rop leaves if the height of the tree is
+      less or equal to this value. *)
 
 (* Fibonacci numbers $F_{n+2}$.  By definition, a NON-EMPTY rope [r]
    is balanced iff [length r >= min_length.(height r)].
@@ -330,8 +335,9 @@ let balance_if_needed r =
    [length(relocate_topright rope leaf _)= length rope + length leaf]
    [height(relocate_topright rope leaf _) = height rope] *)
 let rec relocate_topright rope leaf len_leaf = match rope with
-  | Sub(_,_,_) -> failwith "relocate_right"
+  | Sub(_,_,_) -> failwith "Rope.relocate_topright"
   | Concat(h, len, l,ll, r) ->
+      if h > max_relocate_height then failwith "Rope.relocate_topright";
       let hr = height r + 1 in
       if hr < h then
         (* Success, we can insert the leaf here without increasing the height *)
@@ -343,8 +349,9 @@ let rec relocate_topright rope leaf len_leaf = match rope with
         Concat(h, len + len_leaf, l,ll,  relocate_topright r leaf len_leaf)
 
 let rec relocate_topleft leaf len_leaf rope = match rope with
-  | Sub(_,_,_) -> failwith "relocate_left"
+  | Sub(_,_,_) -> failwith "Rope.relocate_topleft"
   | Concat(h, len, l,ll, r) ->
+      if h > max_relocate_height then failwith "Rope.relocate_topleft";
       let hl = height l + 1 in
       if hl < h then
         (* Success, we can insert the leaf here without increasing the height *)
@@ -373,7 +380,7 @@ let rec concat2_nonempty rope1 rope2 =
   match rope1, rope2 with
   | Sub(s1,i1,len1), Sub(s2,i2,len2) ->
       let len = len1 + len2 in
-      if len <= max_flatten_length then
+      if len <= small_rope_length then
         let s = String.create len in
         String.unsafe_blit s1 i1 s 0 len1;
         String.unsafe_blit s2 i2 s len1 len2;
@@ -385,7 +392,7 @@ let rec concat2_nonempty rope1 rope2 =
       let len2 = length rope2 in
       let len = len1 + len2
       and lens = lens1 + len2 in
-      if lens <= max_flatten_length then
+      if lens <= small_rope_length then
         let s = String.create lens in
         String.unsafe_blit s1 i1 s 0 lens1;
         copy_to_substring s lens1 rope2;
@@ -400,7 +407,8 @@ let rec concat2_nonempty rope1 rope2 =
           let h2plus1 = height rope2 + 1 in
           (* if replacing [leaf1] will increase the height or if further
              concat will have an opportunity to add to a (small) leaf *)
-          if h1 = h2plus1 || len2 < max_flatten_length then
+          if (h1 = h2plus1 && len2 <= max_flatten_length)
+            || len2 < small_rope_length then
             Concat(h1 + 1, len, rope1, len1, flatten rope2)
           else
             (* [h1 > h2 + 1] *)
@@ -412,7 +420,7 @@ let rec concat2_nonempty rope1 rope2 =
       let len1 = length rope1 in
       let len = len1 + len2
       and lens = len1 + lens2 in
-      if lens <= max_flatten_length then
+      if lens <= small_rope_length then
         let s = String.create lens in
         copy_to_substring s 0 rope1;
         String.unsafe_blit s2 i2 s len1 lens2;
@@ -427,7 +435,8 @@ let rec concat2_nonempty rope1 rope2 =
           let h1plus1 = height rope1 + 1 in
           (* if replacing [leaf2] will increase the height or if further
              concat will have an opportunity to add to a (small) leaf *)
-          if h1plus1 = h2 || len1 < max_flatten_length then
+          if (h1plus1 = h2 && len1 <= max_flatten_length)
+            || len1 < small_rope_length then
             Concat(h2 + 1, len, flatten rope1, len1, rope2)
           else
             (* [h1 + 1 < h2] *)
@@ -440,16 +449,16 @@ let rec concat2_nonempty rope1 rope2 =
       let len = len1 + len2 in
       (* Small unbalanced ropes may happen if one concat left, then
          right, then left,.. *)
-      if len <= max_flatten_length then
+      if len <= small_rope_length then
         let s = String.create len in
         copy_to_substring s 0 rope1;
         copy_to_substring s len1 rope2;
         Sub(s, 0, len)
       else begin
         let rope1 =
-          if len1 <= max_flatten_length then flatten rope1 else rope1
+          if len1 <= small_rope_length then flatten rope1 else rope1
         and rope2 =
-          if len2 <= max_flatten_length then flatten rope2 else rope2 in
+          if len2 <= small_rope_length then flatten rope2 else rope2 in
         let h = 1 + max (height rope1) (height rope2) in
         Concat(h, len1 + len2, rope1, len1, rope2)
       end
@@ -497,6 +506,7 @@ let rec sub_to_substring flat j i len = function
         )
 
 let flatten_subrope rope i len =
+  assert(len <= Sys.max_string_length);
   let flat = String.create len in
   sub_to_substring flat 0 i len rope;
   Sub(flat, 0, len)
@@ -536,10 +546,11 @@ let sub rope i len =
   let len_rope = length rope in
   if i < 0 || len < 0 || i > len_rope - len then invalid_arg "Rope.sub"
   else if len = 0 then empty
-  else if len <= 1024 && len_rope >= 16384 then flatten_subrope rope i len
-    (* The benefit of flattening such subropes (and constant) has been
+  else if len <= max_flatten_length && len_rope >= 32768 then
+    (* The benefit of flattening such subropes (and constants) has been
        seen experimentally.  It is not clear what the "exact" rule
        should be. *)
+    flatten_subrope rope i len
   else sub_rec i len rope
 
 
@@ -829,7 +840,10 @@ module Buffer = struct
   (* We will not allocate big buffers, if we exceed the buffer length,
      we will cut into small chunks and add it directly to the forest.  *)
   let create n =
-    let n = if n < 1 then small_rope_length else n in
+    let n =
+      if n < 1 then small_rope_length else
+        if n > Sys.max_string_length then Sys.max_string_length
+        else n in
     { buf = String.create n;
       buf_len = n;
       pos = 0;

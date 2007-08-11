@@ -1,8 +1,8 @@
 VERSION=0.2
 SF_WEB  = /home/groups/o/oc/ocaml-rope/htdocs
-SRC_WEB	= NONE
+SRC_WEB	= web
 
-UNSAFE=-unsafe -noassert # speed gained by this is small
+#UNSAFE=-unsafe -noassert # speed gained by this is small
 OCAMLC_FLAGS= -dtypes -g $(UNSAFE)
 OCAMLOPT_FLAGS= -dtypes -inline 3 $(UNSAFE)
 
@@ -24,9 +24,11 @@ bench_rope.native: rope.cmxa bench_rope.ml
 	$(OCAMLOPT) -o $@ $(OCAMLOPT_FLAGS=) $(BENCHMARK_INC) \
 	  unix.cmxa benchmark.cmxa  $^
 
-.PHONY: bench
+.PHONY: bench bench.byte
 bench: rope.cmxa
 	cd bench; $(MAKE)
+bench.byte: rope.cma
+	cd bench; $(MAKE) byte
 
 doc: $(wildcard *.mli)
 	[ -d "$@" ] || mkdir $@
