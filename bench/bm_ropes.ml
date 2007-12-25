@@ -25,7 +25,7 @@ let nsamples = 30
 let n_ops = 1000
 (* let n_ops = 10000 *)
 
-let max_nconcat = 5
+let max_nconcat = 8
   (** how many concatenations of ropes (in the map) with lower length
       are accepted. [1] means: pick the laegest and complete appending
       chars. *)
@@ -45,11 +45,10 @@ let list_init n f =
 
 let datapoints =
   let basis = [1; 2; 3; 5; 17; 37; 53; 91; 201] in
-  let basis = List.sort compare (list_init 15 (fun _ -> 1 + Random.int 200)) in
+(*   let basis = List.sort compare (list_init 15 (fun _ -> 1 + Random.int 200)) in *)
   let d = max_pox10 - min_pow10 in
   let pow10_of j = Array.init d (fun i -> j * pow 10 (i + min_pow10)) in
-  Array.concat (List.map pow10_of basis @ [ [|max_int / 2 |] ]
-  )
+  Array.concat (List.map pow10_of basis (*@ [ [|max_int / 2 |] } *) )
 (* FIXME: for max_int, TinyRope segfaults!!! *)
 
 let datapoints2 =
@@ -241,7 +240,7 @@ let benchmark dst measl =
     Array.fold_left (fun bm size -> IMap.add size (f size) bm)
       IMap.empty datapoints in
   let times = List.map gather_times measl in
-  let ch = open_out dst in
+  let ch = open_out (Filename.concat "bench" dst) in
   Array.iter (fun size ->
     fprintf ch "%d" size;
     List.iter (fun tbl ->

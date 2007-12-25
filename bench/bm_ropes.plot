@@ -9,7 +9,7 @@ if (hardcopy) set output "append.png"; else \
 set multiplot layout 2,1 downwards
 set key right
 set title "Min. unitary append time"
-plot [:] [1.7e-7:5.7e-7] \
+plot [:] [0.5e-7:5.7e-7] \
    "append.dat" using 1:2 with linespoints title "Tiny (unbalanced)", \
    "append.dat" using 1:4 with linespoints title "FullFeatured (unbalanced)", \
    "append-balanced.dat" using 1:2 with lines title "Tiny (balanced)", \

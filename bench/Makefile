@@ -1,6 +1,8 @@
 UNSAFE=-noassert -unsafe
 LIBS=unix.cmxa
-INC=-I ..
+INC = -I .. -I ../_build
+ROPE_CMA  = ../_build/rope.cma
+ROPE_CMXA = $(ROPE_CMA:.cma=.cmxa)
 
 OCAMLOPT_FLAGS=-dtypes -inline 10 $(UNSAFE) $(INC)
 OCAMLC_FLAGS=-g $(INC)
@@ -9,10 +11,10 @@ OCAMLC_FLAGS=-g $(INC)
 default: bench
 byte: bench.byte
 
-bm_ropes.native: ../rope.cmxa tinyRope.cmx bm_ropes.ml
+bm_ropes.native: $(ROPE_CMXA) tinyRope.cmx bm_ropes.ml
 	$(OCAMLOPT) -o $@ $(OCAMLOPT_FLAGS) $(LIBS) $^
 
-bm_ropes.byte: ../rope.cma tinyRope.cmo bm_ropes.ml
+bm_ropes.byte: $(ROPE_CMA) tinyRope.cmo bm_ropes.ml
 	$(OCAMLC) -o $@ $(OCAMLC_FLAGS) $(LIBS:.cmxa=.cma) $^
 
 bench: bm_ropes.native

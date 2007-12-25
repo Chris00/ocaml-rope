@@ -59,7 +59,7 @@ let small_rope_length = 32
       of a [Concat] node. *)
 
 let max_flatten_length = 1024
-  (** When deciding whther to flatten a rope, only those if length [<=
+  (** When deciding whether to flatten a rope, only those with length [<=
       max_flatten_length] will be. *)
 
 let extract_sub_length = small_rope_length / 2
@@ -70,10 +70,6 @@ let level_flatten = 12
   (** When balancing, flatten the rope at level [level_flatten].  The
       sum of [min_length.(n)], [0 <= n <= level_flatten] must be of te
       same order as [max_flatten_length]. *)
-
-let max_relocate_height = 35
-  (** Only try to relocate rop leaves if the height of the tree is
-      less or equal to this value. *)
 
 (* Fibonacci numbers $F_{n+2}$.  By definition, a NON-EMPTY rope [r]
    is balanced iff [length r >= min_length.(height r)].
@@ -99,11 +95,11 @@ let min_length, max_height =
     assert false
   with Exit -> m, !i
 
-let rebalancing_height = max_height - 1
-  (* Beyond this height, implicit balance will be done.  This value
-     allows gross inefficiencies while not being too time consuming.
-     For example, explicit rebalancing did not improve the running
-     time on the ICFP 2007 task. *)
+let rebalancing_height = 43 (* max_height - 1 *)
+  (** Beyond this height, implicit balance will be done.  This value
+      allows gross inefficiencies while not being too time consuming.
+      For example, explicit rebalancing did not really improve the
+      running time on the ICFP 2007 task. *)
 
 let empty = Sub("", 0, 0)
 
@@ -123,7 +119,7 @@ let is_not_empty = function
   | Sub(_, _, len) -> len <> 0
   | _ -> true
 
-(* For debugging and judging the balancing *)
+(* For debugging purposes and judging the balancing *)
 let print =
   let rec map_left = function
     | [] -> []
@@ -339,7 +335,6 @@ let balance_if_needed r =
 let rec relocate_topright rope leaf len_leaf = match rope with
   | Sub(_,_,_) -> failwith "Rope.relocate_topright"
   | Concat(h, len, l,ll, r) ->
-      if h > max_relocate_height then failwith "Rope.relocate_topright";
       let hr = height r + 1 in
       if hr < h then
         (* Success, we can insert the leaf here without increasing the height *)
@@ -353,7 +348,6 @@ let rec relocate_topright rope leaf len_leaf = match rope with
 let rec relocate_topleft leaf len_leaf rope = match rope with
   | Sub(_,_,_) -> failwith "Rope.relocate_topleft"
   | Concat(h, len, l,ll, r) ->
-      if h > max_relocate_height then failwith "Rope.relocate_topleft";
       let hl = height l + 1 in
       if hl < h then
         (* Success, we can insert the leaf here without increasing the height *)
@@ -445,12 +439,13 @@ let rec concat2_nonempty rope1 rope2 =
             let left = Concat(h1plus1, lens, rope1, len1, leaf2) in
             Concat(h2, len, left, lens, r2)
       end
-  | _,_ ->
+  | _, _ ->
       let len1 = length rope1
       and len2 = length rope2 in
       let len = len1 + len2 in
       (* Small unbalanced ropes may happen if one concat left, then
-         right, then left,.. *)
+         right, then left,...  This costs a bit of time but is a good
+         defense. *)
       if len <= small_rope_length then
         let s = String.create len in
         copy_to_substring s 0 rope1;
@@ -489,11 +484,13 @@ let concat2 rope1 rope2 =
 (** Subrope
  ***********************************************************************)
 
+(** [sub_to_substring flat j i len r] copies the subrope of [r]
+    starting at character [i] and of length [len] to [flat.[j ..]]. *)
 let rec sub_to_substring flat j i len = function
   | Sub(s, i0, lens) ->
       assert(i >= 0 && i <= lens - len);
       assert(j >= 0 && j + len <= String.length flat);
-      String.blit s (i0 + i) flat j len
+      String.unsafe_blit s (i0 + i) flat j len
   | Concat(_, rope_len, l, ll, r) ->
       let ri = i - ll in
       if ri >= 0 then (* only right branch *)
@@ -566,10 +563,11 @@ let rec index_string offset s i i1 c =
   else if s.[i] = c then offset + i
   else index_string offset s (i+1) i1 c;;
 
-(* Return the index of [c] from [i] in the rope or a negative value
-   if not found *)
+(* Return the index of [c] from position [i] in the rope or a negative
+   value if not found *)
 let rec unsafe_index offset i c = function
-  | Sub(s, i0, len) -> index_string offset s i (i0 + len) c
+  | Sub(s, i0, len) ->
+      index_string (offset - i0) s (i0 + i) (i0 + len) c
   | Concat(_, _, l,ll, r) ->
       if i >= ll then unsafe_index (offset + ll) (i - ll) c r
       else
@@ -599,7 +597,8 @@ let rec rindex_string offset s i0 i c =
   else rindex_string offset s i0 (i - 1) c
 
 let rec unsafe_rindex offset i c = function
-  | Sub(s, i0, _) -> rindex_string offset s i0 i c
+  | Sub(s, i0, _) ->
+      rindex_string (offset - i0) s i0 (i0 + i) c
   | Concat(_, _, l,ll, r) ->
       if i < ll then unsafe_rindex offset i c l
       else
@@ -607,8 +606,7 @@ let rec unsafe_rindex offset i c = function
         if ri >= 0 then ri else unsafe_rindex offset (ll - 1) c l
 
 let rindex_from r i c =
-  if i < 0 || i > length r then invalid_arg "Rope.rindex_from"
-  else
+  if i < 0 || i > length r then invalid_arg "Rope.rindex_from" else
     let j = unsafe_rindex 0 i c r in
     if j >= 0 then j else raise Not_found
 
@@ -1165,6 +1163,8 @@ module Rope_toploop = struct
 end
 
 module Regexp = struct
-
+  (* FIXME: See also http://www.pps.jussieu.fr/~vouillon/ who is
+     writing a DFA-based regular expression library.  Would be nice to
+     cooperate. *)
 
 end
