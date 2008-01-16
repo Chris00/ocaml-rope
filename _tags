@@ -1,0 +1,2 @@
+"bench/bm_ropes.native": use_unix
+"bench/bm_ropes.byte": use_unix

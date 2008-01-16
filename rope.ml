@@ -95,7 +95,7 @@ let min_length, max_height =
     assert false
   with Exit -> m, !i
 
-let rebalancing_height = 43 (* max_height - 1 *)
+let rebalancing_height = max_height - 1
   (** Beyond this height, implicit balance will be done.  This value
       allows gross inefficiencies while not being too time consuming.
       For example, explicit rebalancing did not really improve the
