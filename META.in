@@ -1,0 +1,7 @@
+# Specifications for the Rope module                   		-*-conf-*-
+# 	$Id: META.in,v 1.1 2008-01-16 23:44:02 chris_77 Exp $	
+name="rope"
+description="OCaml Rope module"
+requires=""
+archive(byte)="rope.cma"
+archive(native)="rope.cmxa"

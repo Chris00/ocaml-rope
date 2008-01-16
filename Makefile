@@ -1,4 +1,5 @@
-VERSION=0.2
+VERSION = $(shell grep "@version" rope.mli | \
+		sed -r -e "s/[^0-9.]*([0-9.]+).*/\1/")
 SF_WEB  = /home/groups/o/oc/ocaml-rope/htdocs
 SRC_WEB	= web
 
@@ -8,7 +9,7 @@ OCAMLOPT_FLAGS= -dtypes -inline 3 $(UNSAFE)
 
 DIST_FILES=rope.ml rope.mli rope_top.ml LICENSE Makefile
 
-TARBALL_DIR=data-struct-$(VERSION)
+TARBALL_DIR=rope-$(VERSION)
 TARBALL=$(TARBALL_DIR).tar.bz2
 
 BENCHMARK_INC= -I $(HOME)/software/OCaml/benchmark/
@@ -29,6 +30,10 @@ bench: rope.cmxa
 	cd bench; $(MAKE)
 bench.byte: rope.cma
 	cd bench; $(MAKE) byte
+
+META: META.in
+	cp $^ $@
+	echo "version=\"$(VERSION)\"" >> $@
 
 doc: $(wildcard *.mli)
 	[ -d "$@" ] || mkdir $@
@@ -102,7 +107,7 @@ include .depend.ocaml
 
 .PHONY: clean
 clean::
-	$(RM) -f *.cm{i,o,x,a,xa} *.annot *.o *.a *~
-	rm -rf doc/
+	$(RM) -f *.cm{i,o,x,a,xa} *.annot *.o *.a *~ META _log $(TARBALL)
+	rm -rf doc/ _build/
 	find . -type f -perm -u=x -exec rm -f {} \;
 	cd bench; $(MAKE) clean
