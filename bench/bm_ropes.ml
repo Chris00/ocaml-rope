@@ -49,7 +49,7 @@ let datapoints =
   let d = max_pox10 - min_pow10 in
   let pow10_of j = Array.init d (fun i -> j * pow 10 (i + min_pow10)) in
   Array.concat (List.map pow10_of basis (*@ [ [|max_int / 2 |] } *) )
-(* FIXME: for max_int, TinyRope segfaults!!! *)
+(* FIXME: for max_int (32 bits), TinyRope segfaults!!! *)
 
 let datapoints2 =
   Array.concat [
@@ -104,7 +104,7 @@ let sample msg f x =
 
 module IMap = Map.Make(struct type t = int let compare = compare end)
 
-module Benchmark(M :
+module Benchmark(R :
   sig
     type t
     val name : string
@@ -118,6 +118,8 @@ module Benchmark(M :
     val balance : t -> t
     val get : t -> int -> char
     val sub : t -> int -> int -> t
+    val of_string : string -> t
+    val to_string : t -> string
   end) =
 struct
   (** [make_rope size] returns a rope of length [size].  We
@@ -127,39 +129,39 @@ struct
     let rope_tbl = ref IMap.empty in
     let rec add_chars r c size =
       if size <= 0 then r else
-        let op = if size land prepend_size = 0 then M.prepend else M.append in
+        let op = if size land prepend_size = 0 then R.prepend else R.append in
         add_chars (op c r) c (size - 1)  in
     let rec build nconcat r size =
       let largest =
         IMap.fold (fun _ v s ->
-          let len = M.length v in
-          if len > M.length s && len <= size then v else s
-        ) !rope_tbl M.empty in
-      if M.length largest = 0 || nconcat > max_nconcat then
+          let len = R.length v in
+          if len > R.length s && len <= size then v else s
+        ) !rope_tbl R.empty in
+      if R.length largest = 0 || nconcat > max_nconcat then
         (* no piece to add to [r] *)
-        add_chars r 'x' (size - M.length largest)
+        add_chars r 'x' (size - R.length largest)
       else
         let r' =
-          if Random.bool() then M.concat r largest else M.concat largest r in
-        build (nconcat + 1) r' (size - M.length largest) in
+          if Random.bool() then R.concat r largest else R.concat largest r in
+        build (nconcat + 1) r' (size - R.length largest) in
     fun size ->
-      let r = build 0 M.empty size in
+      let r = build 0 R.empty size in
       rope_tbl := IMap.add size r !rope_tbl;
-      if M.balanced then M.balance r else r
+      if R.balanced then R.balance r else r
   ;;
 
   let append_time size =
     let v = ref (make_rope size) in
     let t0 = Unix.gettimeofday () in
     for i = 0 to n_ops - 1 do
-      v := M.append 'z' !v;
+      v := R.append 'z' !v;
       (* ignore (append_f I !v); *)
     done;
     let dt = (Unix.gettimeofday () -. t0) in
-    (dt -. basic_loop_overhead) /. (float_of_int n_ops),  M.height !v
+    (dt -. basic_loop_overhead) /. (float_of_int n_ops),  R.height !v
 
   let measure_append_time size =
-    let msg = sprintf "Append time for %s of size %d\n%!" M.name size in
+    let msg = sprintf "Append time for %s of size %d\n%!" R.name size in
     sample msg append_time size
 
 
@@ -169,14 +171,14 @@ struct
     let t0 = Unix.gettimeofday () in
 (*     let sum = ref 0 in *)
     for i = 0 to n_ops - 1 do
-      ignore(M.get r (Random.int size));
+      ignore(R.get r (Random.int size));
     done;
     let dt = (Unix.gettimeofday () -. t0) in
-    (dt -. random_loop_overhead) /. float n_ops,  M.height r
-(*     float !sum /. float n_ops,  M.height r *)
+    (dt -. random_loop_overhead) /. float n_ops,  R.height r
+(*     float !sum /. float n_ops,  R.height r *)
 
   let measure_random_get_time size =
-    let msg = sprintf "Random get time for %s of size %d\n%!" M.name size in
+    let msg = sprintf "Random get time for %s of size %d\n%!" R.name size in
     sample msg random_get_time size
 
 
@@ -185,45 +187,76 @@ struct
     let t0 = Unix.gettimeofday () in
     let h = ref 0 in
     for i = 0 to n_ops - 1 do
-      h := !h + M.height(M.sub r 0 (Random.int size));
+      h := !h + R.height(R.sub r 0 (Random.int size));
     done;
     let dt = (Unix.gettimeofday () -. t0) in
     (dt -. random_loop_overhead) /. float n_ops,
     truncate(0.5 +. float !h /. float n_ops) (* round *)
 
   let measure_sub_time size =
-    let msg = sprintf "Sub time for %s of size %d\n%!" M.name size in
+    let msg = sprintf "Sub time for %s of size %d\n%!" R.name size in
     sample msg sub_time size
+
+  (* Test inspired by http://www.rubyquiz.com/quiz137.html *)
+  let size = 512 * 1024
+  let size8 = 8 + size
+  (* [text] is make of [nchunks] chunks of text, each of [size] bytes
+     long.  Each chunck starts with an 8 byte number.  Initially the
+     chuncks are shuffled the this function sorts them into ascending
+     order. *)
+  let rec qsort text =
+    if R.length text = 0 then text else begin
+      let pivot = int_of_string(R.to_string(R.sub text 0 8)) in
+      let less = ref R.empty
+      and more = ref R.empty in
+      let offset = ref size8 in
+      while !offset < R.length text do
+        let i = int_of_string(R.to_string(R.sub text !offset 8)) in
+        if i < pivot then
+          less := R.concat !less (R.sub text !offset size8)
+        else
+          more := R.concat !more (R.sub text !offset size8);
+        offset := !offset + 8 + size;
+      done;
+      R.concat (qsort !less) (R.concat (R.sub text 0 size8) (qsort !more))
+    end
+
+  let bulk_string = make_rope size
+  let do_qsort size =
+    let nchunks = size / 100_000 in
+    let data = ref R.empty in
+    for i = 1 to nchunks do
+      data := R.concat !data
+        (R.concat (R.of_string(sprintf "%08i" (Random.int nchunks)))
+           bulk_string)
+    done;
+    let t0 = Unix.gettimeofday () in
+    let sorted = qsort !data in
+    let dt = (Unix.gettimeofday () -. t0) in
+    (dt -. random_loop_overhead) /. float n_ops,  R.height sorted
+
+  let measure_qsort size =
+    let msg = sprintf "Qsort time for %s of size %d\n%!" R.name size in
+    sample msg do_qsort size
 end
 
 module TinyBM =
 struct
-  type t = TinyRope.t
   let name = "TinyRope"
-  let empty = TinyRope.empty
+  include TinyRope
   let append = TinyRope.append_char
   let prepend = TinyRope.prepend_char
-  let concat = TinyRope.concat
-  let length = TinyRope.length
-  let height = TinyRope.height
-  let balance = TinyRope.balance
   let get r i = TinyRope.get i r
   let sub r start len = TinyRope.sub start len r
 end
 
 module FullBM =
 struct
-  type t = Rope.t
   let name = "Rope"
-  let empty = Rope.empty
+  include Rope
   let append c r = Rope.concat2 r (Rope.of_char c)
   let prepend c r = Rope.concat2 (Rope.of_char c) r
   let concat = Rope.concat2
-  let length = Rope.length
-  let height = Rope.height
-  let balance = Rope.balance
-  let get = Rope.get
-  let sub = Rope.sub
 end
 
 module BalancedFullBM =
@@ -268,5 +301,10 @@ let () =
                        UnbalancedFullBM.measure_sub_time;
                        BalancedTinyBM.measure_sub_time;
                        BalancedFullBM.measure_sub_time ];
+  Gc.full_major ();
+  benchmark "qsort.dat" [UnbalancedTinyBM.measure_qsort;
+                         UnbalancedFullBM.measure_qsort;
+                         BalancedTinyBM.measure_qsort;
+                         BalancedFullBM.measure_qsort ];
   ()
 

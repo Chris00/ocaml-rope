@@ -74,6 +74,27 @@ plot \
 unset multiplot
 unset logscale x
 
+if (hardcopy) set output "qsort.png"; else set terminal wxt 4 raise
+set multiplot layout 2,1 downwards
+set key top left
+set title "Min. unitary random qsort time"
+plot \
+   "qsort.dat" using 1:2 with linespoints title "Tiny (unbalanced)", \
+   "qsort.dat" using 1:4 with linespoints title "FullFeatured (unbalanced)", \
+   "qsort.dat" using 1:6 with lines title "Tiny (balanced)", \
+   "qsort.dat" using 1:8 with lines title "FullFeatured (balanced)"
+set title ""
+set ylabel "depth (average after sub)"
+plot \
+   "qsort.dat" using 1:3 with linespoints title "Tiny (unbalanced)", \
+   "qsort.dat" using 1:5 with linespoints title "FullFeatured (unbalanced)", \
+   "qsort.dat" using 1:7 with lines title "Tiny (balanced)", \
+   "qsort.dat" using 1:9 with lines title "FullFeatured (balanced)"
+unset multiplot
+unset logscale x
+
+
+
 # Local Variables: 
 # mode: gnuplot
 # End: 

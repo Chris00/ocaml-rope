@@ -61,11 +61,11 @@ web: doc
 	fi
 
 upload: dist
-	@ if [ -z "$(PKG_TARBALL)" ]; then \
+	@ if [ -z "$(TARBALL)" ]; then \
 		echo "PKG_TARBALL not defined"; exit 1; fi
-	echo -e "bin\ncd incoming\nput $(PKG_TARBALL)" \
+	echo -e "bin\ncd incoming\nput $(TARBALL)" \
 	  | ncftp -p chris_77@users.sf.net upload.sourceforge.net \
-	  && echo "*** Uploaded $(PKG_TARBALL) to SF"
+	  && echo "*** Uploaded $(TARBALL) to SF"
 
 
 OCAMLC     ?= ocamlc

@@ -25,8 +25,11 @@
     http://www.cs.ubc.ca/local/reading/proceedings/spe91-95/spe/vol25/issue12/spe986.pdf *)
 
 (* TODO:
+   - Regexp (maybe using Jérôme Vouillon regexp lib ?
+     http://www.pps.jussieu.fr/~vouillon/)
+
    - Camomille interop. (with phantom types for encoding ??)
- *)
+*)
 
 
 let min i j = if (i:int) < j then i else j
@@ -1168,3 +1171,9 @@ module Regexp = struct
      cooperate. *)
 
 end
+
+
+
+(* Local Variables: *)
+(* compile-command: "ocamlbuild -classic-display all.otarget" *)
+(* End: *)
