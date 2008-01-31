@@ -1,0 +1,62 @@
+
+A:active {
+  color: #ff6600;
+}
+
+A:visited {
+  color: #999999;
+}
+
+/***
+   * Code
+   */
+
+code.ocaml {
+  display: block;
+/*   font-size: large; */
+  background-color: rgb(240,245,254);
+  padding: 5px;
+}
+
+.prompt {
+  color: rgb(128,128,128);
+}
+
+.let {
+  font-weight: bold;
+}
+
+.module {
+  color: rgb(126,27,29);
+}
+
+span.input:hover {
+  background-color: rgb(200,200,200);  
+}
+
+.answer {
+  font-style: italic;
+}
+span.answer:hover {
+  background-color: rgb(200,200,200);
+}
+
+
+/***
+   * Menu
+   */
+
+a.menu img:hover {
+  background-color: rgb(200,200,200);
+}
+
+/* General */
+
+body {
+  color: black;
+  background-color: rgb(255,255,255);
+}
+
+A:link {
+  color: rgb(126,27,29);
+}

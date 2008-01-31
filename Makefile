@@ -49,13 +49,14 @@ $(TARBALL):
 
 # Release a Sourceforge tarball and publish the HTML doc
 .PHONY: web upload
-web: doc
+web-doc: doc
 	@ if [ -d doc ] ; then \
 	  scp -r doc/ shell.sf.net:$(SF_WEB)/ \
 	  && echo "*** Published documentation on SF" ; \
 	fi
+web:
 	@ if [ -d $(SRC_WEB)/ ] ; then \
-	  scp $(SRC_WEB)/*.html $(SRC_WEB)/*.jpg LICENSE \
+	  scp $(SRC_WEB)/*.html $(SRC_WEB)/*.css $(SRC_WEB)/*.png LICENSE \
 	    shell.sf.net:$(SF_WEB) \
 	  && echo "*** Published web site ($(SRC_WEB)/) on SF" ; \
 	fi
