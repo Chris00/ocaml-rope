@@ -1,0 +1,15 @@
+#!/bin/sh
+
+SRC_WEB=web
+SF_WEB=chris_77,ocaml-rope@frs.sourceforge.net:htdocs
+
+if [ -d doc ] ; then
+    scp -r doc/ $SF_WEB	&& echo "*** Published documentation on SF"
+fi
+FILES=$SRC_WEB/*.html
+if [ "$1" = "--all" ]; then
+    FILES="$FILES $SRC_WEB/*.jpg LICENSE"
+fi
+if [ -d "$SRC_WEB" ]; then
+    scp $FILES $SF_WEB && echo "*** Published web site ($SRC_WEB/) on SF"
+fi
