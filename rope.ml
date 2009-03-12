@@ -29,6 +29,7 @@
      http://www.pps.jussieu.fr/~vouillon/)
 
    - Camomille interop. (with phantom types for encoding ??)
+     See also the OSR http://cocan.org/osr/unicode_library
 *)
 
 
@@ -98,11 +99,13 @@ let min_length, max_height =
     assert false
   with Exit -> m, !i
 
-let rebalancing_height = max_height - 1
+
+let rebalancing_height = min (max_height - 1) 60
   (** Beyond this height, implicit balance will be done.  This value
       allows gross inefficiencies while not being too time consuming.
       For example, explicit rebalancing did not really improve the
       running time on the ICFP 2007 task. *)
+  (* 32 bits: max_height - 1 = 42 *)
 
 let empty = Sub("", 0, 0)
 
@@ -331,12 +334,14 @@ let balance_if_needed r =
  * but the later the better).
  *)
 
+exception Relocation_failure (* Internal exception *)
+
 (* Try to relocate the [leaf] at a position that will not increase the
    height.
    [length(relocate_topright rope leaf _)= length rope + length leaf]
    [height(relocate_topright rope leaf _) = height rope] *)
 let rec relocate_topright rope leaf len_leaf = match rope with
-  | Sub(_,_,_) -> failwith "Rope.relocate_topright"
+  | Sub(_,_,_) -> raise Relocation_failure
   | Concat(h, len, l,ll, r) ->
       let hr = height r + 1 in
       if hr < h then
@@ -349,7 +354,7 @@ let rec relocate_topright rope leaf len_leaf = match rope with
         Concat(h, len + len_leaf, l,ll,  relocate_topright r leaf len_leaf)
 
 let rec relocate_topleft leaf len_leaf rope = match rope with
-  | Sub(_,_,_) -> failwith "Rope.relocate_topleft"
+  | Sub(_,_,_) -> raise Relocation_failure
   | Concat(h, len, l,ll, r) ->
       let hl = height l + 1 in
       if hl < h then
@@ -402,7 +407,7 @@ let rec concat2_nonempty rope1 rope2 =
           (* [h1 = height l1 + 1] since the right branch is a leaf
              and [height l1 = height left]. *)
           Concat(max h1 (1 + height rope2), len, left, len1, rope2)
-        with Failure _ ->
+        with Relocation_failure ->
           let h2plus1 = height rope2 + 1 in
           (* if replacing [leaf1] will increase the height or if further
              concat will have an opportunity to add to a (small) leaf *)
@@ -430,7 +435,7 @@ let rec concat2_nonempty rope1 rope2 =
           (* [h2 = height r2 + 1] since the left branch is a leaf
              and [height r2 = height right]. *)
           Concat(max (1 + height rope1) h2, len, rope1, len1, right)
-        with Failure _ ->
+        with Relocation_failure ->
           let h1plus1 = height rope1 + 1 in
           (* if replacing [leaf2] will increase the height or if further
              concat will have an opportunity to add to a (small) leaf *)

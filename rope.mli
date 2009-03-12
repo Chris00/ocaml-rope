@@ -183,7 +183,8 @@ val compare: t -> t -> int
 
 val equal : t -> t -> bool
   (** [equal r1 r2] tells whether the two ropes [r1] and [r2] are
-      equal. *)
+      equal.  (It is equivalent to [compare r1 r2 = 0], just slightly
+      faster.) *)
 
 
 (** {2 Search} *)

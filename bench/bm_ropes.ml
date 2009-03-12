@@ -45,7 +45,7 @@ let list_init n f =
 
 let datapoints =
   let basis = [1; 2; 3; 5; 17; 37; 53; 91; 201] in
-(*   let basis = List.sort compare (list_init 15 (fun _ -> 1 + Random.int 200)) in *)
+  (* let basis = List.sort compare (list_init 15 (fun _ -> 1 + Random.int 200)) in *)
   let d = max_pox10 - min_pow10 in
   let pow10_of j = Array.init d (fun i -> j * pow 10 (i + min_pow10)) in
   Array.concat (List.map pow10_of basis (*@ [ [|max_int / 2 |] } *) )
