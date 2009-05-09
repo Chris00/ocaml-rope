@@ -7,10 +7,9 @@ SRC_WEB	= web
 OCAMLC_FLAGS= -dtypes -g $(UNSAFE)
 OCAMLOPT_FLAGS= -dtypes -inline 3 $(UNSAFE)
 
-DIST_FILES=rope.ml rope.mli rope_top.ml LICENSE Makefile
+DIST_FILES= rope.ml rope.mli rope_top.ml LICENSE Makefile
 
-TARBALL_DIR=rope-$(VERSION)
-TARBALL=$(TARBALL_DIR).tar.bz2
+TARBALL = rope-$(VERSION).tar.bz2
 
 BENCHMARK_INC= -I $(HOME)/software/OCaml/benchmark/
 
@@ -39,12 +38,11 @@ doc: $(wildcard *.mli)
 	[ -d "$@" ] || mkdir $@
 	$(OCAMLDOC) -html -d $@ $^
 
-dist: $(TARBALL)
+# "Force" a tag to be defined for each released tarball
+tar: $(TARBALL)
 $(TARBALL):
-	mkdir $(TARBALL_DIR)
-	cp $(DIST_FILES) $(TARBALL_DIR)/
-	tar -jvcf $@ $(TARBALL_DIR)
-	rm -rf $(TARBALL_DIR)
+	bzr export $(TARBALL) -r "tag:$(VERSION)"
+	@echo "Created tarball '$(TARBALL)'."
 
 
 # Release a Sourceforge tarball and publish the HTML doc
@@ -61,13 +59,6 @@ web:
 	  && echo "*** Published web site ($(SRC_WEB)/) on SF" ; \
 	fi
 
-upload: dist
-	@ if [ -z "$(TARBALL)" ]; then \
-		echo "PKG_TARBALL not defined"; exit 1; fi
-	echo -e "bin\ncd incoming\nput $(TARBALL)" \
-	  | ncftp -p chris_77@users.sf.net upload.sourceforge.net \
-	  && echo "*** Uploaded $(TARBALL) to SF"
-
 
 OCAMLC     ?= ocamlc
 OCAMLOPT   ?= ocamlopt
@@ -77,8 +68,6 @@ OCAMLFIND  ?= ocamlfind
 OCAMLTAGS  ?= ocamltags
 
 # Caml general dependencies
-.SUFFIXES: .cmo .cmi .cmx .ml .mli
-
 %.cmi: %.mli
 	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
 

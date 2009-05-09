@@ -10,58 +10,51 @@
   <link title="Rope style" rel="stylesheet" href="rope.css" type="text/css">
 </head>
 <body>
-<br />
-<table style="text-align: left; width: 100%;" border="0" cellspacing="2"
-       cellpadding="2">
-  <tbody>
-    <tr>
-      <td colspan="2" rowspan="1"
-	  style="vertical-align: top; width: 18%; text-align: center;
-		 white-space: nowrap;"
-	  ><img
-	      style="width: 800px; height: 111px;" alt="OCaml Rope"
-	      src="rope.png"
-	      ><br /><br />
-      </td>
-    </tr>
-    <tr>
-      <td style="vertical-align: top; width: 270px;">
-	<a href="http://sourceforge.net/projects/ocaml-benchmark/"
+<div id="banner">
+  <img
+     style="width: 800px; height: 111px;" alt="OCaml Rope"
+     src="rope.png" >
+</div>
+
+<div id="menu">
+  <ul>
+    <li><a href="https://forge.ocamlcore.org/projects/rope/"
 	   class="menu"
-	   ><img style="border: 0px solid ; width: 167px; height: 44px;"
+	   ><img style="border: 0px solid ; width: 117px; height: 31px;"
 		 alt="Summary"
-		 src="summary.png"></a><br/>
-	<a href="doc/Rope.html"
+		 src="summary.png"></a></li>
+    <li><a href="doc/Rope.html"
 	   class="menu"
-	   ><img style="border: 0px solid ; width: 264px; height: 44px;"
+	   ><img style="border: 0px solid ; width: 185px; height: 31px;"
 		 alt="Documentation"
-		 src="documentation.png"></a><br/>
-	<a href="http://sourceforge.net/project/showfiles.php?group_id=202934"
+		 src="documentation.png"></a></li>
+    <li><a href="https://forge.ocamlcore.org/frs/?group_id=101"
 	   class="menu"
-	   ><img style="border: 0px solid ; width: 174px; height: 44px;"
+	   ><img style="border: 0px solid ; width: 122px; height: 31px;"
 		 alt="Download"
-		 src="download.png"></a><br>
-	<a href="LICENSE"
+		 src="download.png"></a></li>
+    <li><a href="LICENSE"
 	   class="menu"
-	   ><img style="border: 0px solid ; width: 132px; height: 44px;"
+	   ><img style="border: 0px solid ; width: 92px; height: 31px;"
 		 alt="License"
-		 src="license.png"></a>
-      </td>
-      <td style="vertical-align: top;">
-	<p>
-	  As its name implies, the OCaml Rope library implements the
-	  immutable
-	  <a href="http://www.cs.ubc.ca/local/reading/proceedings/spe91-95/spe/vol25/issue12/spe986.pdf">rope
-	    datastructure</a>&nbsp;[1] (with some small variations).
-	    All  meaningful <code>String</code> module functions
-	    are implemented; regular expressions are planned (help
-	    appreciated).
-	</p>
-	<p>
-	  Here is an example use of <code>Rope</code> in the
-	  interactive toploop (notice the special printer to
-	  conveniently display ropes):<br/>
-	  <pre><code class="ocaml"
+		 src="license.png"></a></li>
+  </ul>
+</div>
+<div id="main">
+  <p>
+    As its name implies, the OCaml Rope library implements the
+    immutable
+    <a href="http://www.cs.ubc.ca/local/reading/proceedings/spe91-95/spe/vol25/issue12/spe986.pdf">rope
+      datastructure</a>&nbsp;[1] (with some small variations).
+    All  meaningful <code>String</code> module functions
+    are implemented; regular expressions are planned (help
+    appreciated).
+  </p>
+  <p>
+    Here is an example use of <code>Rope</code> in the
+    interactive toploop (notice the special printer to
+    conveniently display ropes):<br/>
+    <pre><code class="ocaml"
 ><span class="prompt">#</span> <span class="input">#load "rope.cma"</span>;;
 <span class="prompt">#</span> <span class="input">#install_printer <span class="module">Rope</span>.<span class="module">Rope_toploop</span>.printer</span>;;
 
@@ -70,29 +63,26 @@
 <span class="prompt">#</span> <span class="input"><span class="let">let</span> r = <span class="module">Rope</span>.of_string "Hello" ^ <span class="module">Rope</span>.of_string " " ^ <span class="module">Rope</span>.of_string "world!"</span>;;
 <span class="answer">val r : Rope.t = "Hello world!"</span>
 <span class="prompt">#</span> <span class="input"><span class="module">Rope</span>.length r</span>;;
-<span class="answer">- : int = 12</span></code></pre>
-	For a complete description of the functions, see the
-	interface <a href="doc/Rope.html"><code>Rope.mli</code></a>.
-	If you have questions, suggestions, bugs,... you can contact
-	me by
-	email: <a href="mailto:chris_77@users.sourceforge.net?SUBJECT=OCaml%20Rope">chris_77@users.sourceforge.net</a><br>
+<span class="answer">- : int = 12</span></code> </pre>
 
-	<p> The code is released under the GNU Lesser General Public
-	  License (LGPL) with the same special exception as for the
-	  OCaml standard library (see the
-	  file <a href="LICENSE">LICENSE</a> for more details).
-	</p>
+    For a complete description of the functions, see the
+    interface <a href="doc/Rope.html"><code>Rope.mli</code></a>.
+    If you have questions, suggestions, bugs,... you can
+    <a href="mailto:Christophe.TroestlerREMOVE@umons.ac.be?SUBJECT=OCaml%20Rope"
+       >contact me by email</a>.
+  </p>
+  <p> The code is released under the GNU Lesser General Public License
+    (LGPL) with the same special exception as for the OCaml
+    standard library (see the file <a href="LICENSE">LICENSE</a>
+    for more details).
+  </p>
 
-	<br/>
-	<hr width="10%" align="left" />
-	<p>[1] Hans Boehm, Russ Atkinson, Michael Plass, "Ropes: an
-	  alternative to strings", Software Practice and Experience 25,
-	  vol. 12 (1995), pp. 1315-1330.
-      </p>
-      </td>
-    </tr>
-  </tbody>
-</table>
+  <br/> <hr width="10%" align="left" />
+  <p>[1] Hans Boehm, Russ Atkinson, Michael Plass, "Ropes: an
+    alternative to strings", Software Practice and Experience 25,
+    vol. 12 (1995), pp. 1315-1330.
+  </p>
+</div>
 
 </body>
 </html>
