@@ -110,5 +110,5 @@ include .depend.ocaml
 clean::
 	$(RM) -f *.cm{i,o,x,a,xa} *.annot *.o *.a *~ META _log $(TARBALL)
 	rm -rf doc/ _build/
-	find . -type f -perm -u=x -exec rm -f {} \;
+	find bench -type f -perm -u=x -exec rm -f {} \;
 	cd bench; $(MAKE) clean
