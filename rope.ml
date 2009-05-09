@@ -1170,6 +1170,9 @@ module Rope_toploop = struct
     if to_be_printed < 0 then pp_print_string fm !ellipsis
 end
 
+(** Regexp
+ ***********************************************************************)
+
 module Regexp = struct
   (* FIXME: See also http://www.pps.jussieu.fr/~vouillon/ who is
      writing a DFA-based regular expression library.  Would be nice to
