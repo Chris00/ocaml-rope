@@ -1,4 +1,0 @@
-bm_ropes.cmo: tinyRope.cmi 
-bm_ropes.cmx: tinyRope.cmx 
-tinyRope.cmo: tinyRope.cmi 
-tinyRope.cmx: tinyRope.cmi 

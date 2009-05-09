@@ -6,7 +6,7 @@ WEB=rope.forge.ocamlcore.org:/home/groups/rope/htdocs
 if [ -d doc ] ; then
     scp -r doc/ $WEB	&& echo "*** Published documentation on OCamlForge"
 fi
-FILES=$SRC_WEB/*.html
+FILES="$SRC_WEB/*.html $SRC_WEB/*.css"
 if [ "$1" = "--all" ]; then
     FILES="$FILES $SRC_WEB/*.png LICENSE"
 fi
