@@ -1,7 +1,7 @@
 #								-*-conf-*-
 OASISFormat: 0.3
 Name:        rope
-Version:     0.4
+Version:     0.5
 Synopsis:    Ropes ("heavyweight strings")
 Description: Ropes ("heavyweight strings") are a scalable string
     implementation: they are designed for efficient operation that
