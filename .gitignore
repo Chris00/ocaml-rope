@@ -1,6 +1,7 @@
 *.byte
 *.native
 _build
+*.docdir
 .depend.ocaml
 setup.data
 setup.log

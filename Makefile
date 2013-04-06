@@ -2,7 +2,7 @@ PKGNAME	    = $(shell oasis query name)
 PKGVERSION  = $(shell oasis query version)
 TARBALL = $(PKGNAME)-$(PKGVERSION).tar.gz
 
-SF_WEB  = /home/groups/o/oc/ocaml-rope/htdocs
+WEB = rope.forge.ocamlcore.org:/home/groups/rope/htdocs
 SRC_WEB	= web
 
 DISTFILES= _oasis $(wildcard $(addprefix src/, *.ml *.mli)) LICENSE Makefile \
@@ -36,15 +36,14 @@ dist tar: $(DISTFILES)
 # Release a Sourceforge tarball and publish the HTML doc
 .PHONY: web upload
 web-doc: doc
-	@ if [ -d doc ] ; then \
-	  scp -r doc/ shell.sf.net:$(SF_WEB)/ \
-	  && echo "*** Published documentation on SF" ; \
+	@ if [ -d API.docdir/ ] ; then \
+	  scp -r API.docdir/ $(WEB)/ \
+	  && echo "*** Published documentation" ; \
 	fi
 web:
 	@ if [ -d $(SRC_WEB)/ ] ; then \
-	  scp $(SRC_WEB)/*.html $(SRC_WEB)/*.css $(SRC_WEB)/*.png LICENSE \
-	    shell.sf.net:$(SF_WEB) \
-	  && echo "*** Published web site ($(SRC_WEB)/) on SF" ; \
+	  scp $(addprefix $(SRC_WEB)/, *.html *.css *.png) LICENSE $(WEB) \
+	  && echo "*** Published web site ($(SRC_WEB)/)" ; \
 	fi
 
 

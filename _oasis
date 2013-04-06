@@ -22,6 +22,15 @@ Library rope
   BuildTools: ocamlbuild
   Modules:    Rope
 
+Document API
+  Title:           API reference for Rope
+  Type:            OCamlbuild (0.3)
+  InstallDir:      $docdir/api
+  BuildTools:      ocamldoc, ocamlbuild
+  XOCamlbuildPath: .
+  XOCamlbuildLibraries: rope
+
+
 # rope_test is for the toploop
 Executable bench_rope
   Build$:         flag(tests)
