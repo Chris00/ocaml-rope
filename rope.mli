@@ -49,7 +49,6 @@
     To use this library in the toploop, issue [#use "rope_top.ml";;]
 
     @author Christophe Troestler
-    @version 0.4
 *)
 
 

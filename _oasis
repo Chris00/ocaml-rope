@@ -1,0 +1,47 @@
+#								-*-conf-*-
+OASISFormat: 0.3
+Name:        rope
+Version:     0.4
+Synopsis:    Ropes ("heavyweight strings")
+Description: Ropes ("heavyweight strings") are a scalable string
+    implementation: they are designed for efficient operation that
+    involve the string as a whole.  Operations such as concatenation,
+    and substring take time that is nearly independent of the length
+    of the string.  Unlike strings, ropes are a reasonable
+    representation for very long strings such as edit buffers or mail
+    messages.
+Authors:     Christophe Troestler
+Maintainers: Christophe Troestler <Christophe.Troestler@umons.ac.be>
+Categories:  http://datastructure
+License:     LGPL-2.1 with OCaml linking exception
+Homepage:    http://rope.forge.ocamlcore.org/
+Plugins:     META (0.3), StdFiles (0.3)
+
+Library rope
+  Path:       .
+  BuildTools: ocamlbuild
+  Modules:    Rope
+
+# rope_test is for the toploop
+Executable bench_rope
+  Build$:         flag(tests)
+  Path:           bench/
+  MainIs:         bench_rope.ml
+  BuildDepends:   rope, benchmark
+  CompiledObject: best
+  BuildTools:     ocamlbuild
+  Install:        false
+
+Executable bm_rope
+  Build$:         flag(tests)
+  Path:           bench/
+  MainIs:         bm_ropes.ml
+  BuildDepends:   rope, benchmark
+  CompiledObject: best
+  BuildTools:     ocamlbuild
+  Install:        false
+
+SourceRepository master
+  Type:       git
+  Location:   https://forge.ocamlcore.org/anonscm/git/rope/rope.git
+  Browser:    https://forge.ocamlcore.org/scm/browser.php?group_id=101

@@ -1,2 +1,7 @@
+*.byte
+*.native
 _build
 .depend.ocaml
+setup.data
+setup.log
+bench/*.dat

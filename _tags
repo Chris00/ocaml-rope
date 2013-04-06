@@ -1,2 +1,4 @@
-"bench/bm_ropes.native": use_unix
-"bench/bm_ropes.byte": use_unix
+# OASIS_START
+# OASIS_STOP
+
+true: annot

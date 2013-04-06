@@ -1,49 +1,36 @@
-VERSION = $(shell grep "@version" rope.mli | \
-		sed -r -e "s/[^0-9.]*([0-9.]+).*/\1/")
+PKGNAME	    = $(shell oasis query name)
+PKGVERSION  = $(shell oasis query version)
+TARBALL = $(PKGNAME)-$(PKGVERSION).tar.gz
+
 SF_WEB  = /home/groups/o/oc/ocaml-rope/htdocs
 SRC_WEB	= web
 
-#UNSAFE=-unsafe -noassert # speed gained by this is small
-OCAMLC_FLAGS= -dtypes -g $(UNSAFE)
-OCAMLOPT_FLAGS= -dtypes -inline 3 $(UNSAFE)
+DISTFILES= rope.ml rope.mli rope_top.ml LICENSE Makefile
 
-DIST_FILES= rope.ml rope.mli rope_top.ml LICENSE Makefile
+.PHONY: all byte native configure doc test install uninstall reinstall
 
-TARBALL = rope-$(VERSION).tar.bz2
+all byte native: configure
+	ocaml setup.ml -build
 
-BENCHMARK_INC= -I $(HOME)/software/OCaml/benchmark/
+configure: setup.ml
+	ocaml $< -configure --enable-tests
 
-default:
-	@echo -n "This project now uses 'ocamlbuild' for the build phase.  "
-	@echo -e "Please type\n\tocamlbuild all.otarget"
-	@echo "(If you nonetheless want to use 'make' type 'make all'.)"
+setup.ml: _oasis
+	oasis setup -setup-update dynamic
 
-all: rope.cma rope.cmxa
+test doc install uninstall reinstall: all
+	ocaml setup.ml -$@
 
-bench_rope.native: rope.cmxa bench_rope.ml
-	$(OCAMLOPT) -o $@ $(OCAMLOPT_FLAGS=) $(BENCHMARK_INC) \
-	  unix.cmxa benchmark.cmxa  $^
 
-.PHONY: bench bench.byte
-bench: rope.cmxa
-	cd bench; $(MAKE)
-bench.byte: rope.cma
-	cd bench; $(MAKE) byte
 
-META: META.in
-	cp $^ $@
-	echo "version=\"$(VERSION)\"" >> $@
-
-doc: $(wildcard *.mli)
-	[ -d "$@" ] || mkdir $@
-	$(OCAMLDOC) -html -d $@ $^
-
-# "Force" a tag to be defined for each released tarball
-tar: $(TARBALL)
-$(TARBALL):
-	bzr export $(TARBALL) -r "tag:$(VERSION)"
-	@echo "Created tarball '$(TARBALL)'."
-
+.PHONY: dist tar
+dist tar: $(DISTFILES)
+	mkdir $(PKGNAME)-$(PKGVERSION)
+	cp --parents -r $(DISTFILES) $(PKGNAME)-$(PKGVERSION)/
+#	Generate a setup.ml independent of oasis
+	cd $(PKGNAME)-$(PKGVERSION) && oasis setup
+	tar -zcvf $(PKG_TARBALL) $(PKGNAME)-$(PKGVERSION)
+	$(RM) -rf $(PKGNAME)-$(PKGVERSION)
 
 # Release a Sourceforge tarball and publish the HTML doc
 .PHONY: web upload
@@ -60,44 +47,8 @@ web:
 	fi
 
 
-OCAMLC     ?= ocamlc
-OCAMLOPT   ?= ocamlopt
-OCAMLDEP   ?= ocamldep
-OCAMLDOC   ?= ocamldoc
-OCAMLFIND  ?= ocamlfind
-OCAMLTAGS  ?= ocamltags
-
-# Caml general dependencies
-%.cmi: %.mli
-	$(OCAMLC) $(OCAMLC_FLAGS) -c $<
-
-%.cmo: %.ml
-	$(OCAMLC) $(PP) $(OCAMLC_FLAGS) -c $<
-
-%.cma: %.cmo
-	$(OCAMLC) $(PP) -a -o $@ $(OCAMLC_FLAGS) $<
-
-%.cmx: %.ml
-	$(OCAMLOPT) $(PP) $(OCAMLOPT_FLAGS) -c $<
-
-%.cmxa: %.cmx
-	$(OCAMLOPT) $(PP) -a -o $@ $(OCAMLOPT_FLAGS) $<
-
-%.byte: %.ml
-	$(OCAMLC) -o $@ $(PP) $(OCAMLC_FLAGS) $<
-
-%.native: %.ml
-	$(OCAMLOPT) -o $@ $(PP) $(OCAMLOPT_FLAGS) $<
-
-
-.depend.ocaml: $(wildcard *.ml) $(wildcard *.mli)
-	$(OCAMLDEP) $(PP) $(SYNTAX_OPTS) $^ > $@
-include .depend.ocaml
-
-
 .PHONY: clean
 clean::
+	ocaml setup.ml -clean
 	$(RM) -f *.cm{i,o,x,a,xa} *.annot *.o *.a *~ META _log $(TARBALL)
-	rm -rf doc/ _build/
-	find bench -type f -perm -u=x -exec rm -f {} \;
-	cd bench; $(MAKE) clean
+	$(RM) $(wildcard bench/*.dat)
