@@ -18,7 +18,7 @@ Homepage:    http://rope.forge.ocamlcore.org/
 Plugins:     META (0.3), StdFiles (0.3)
 
 Library rope
-  Path:       .
+  Path:       src
   BuildTools: ocamlbuild
   Modules:    Rope
 
