@@ -5,7 +5,8 @@ TARBALL = $(PKGNAME)-$(PKGVERSION).tar.gz
 SF_WEB  = /home/groups/o/oc/ocaml-rope/htdocs
 SRC_WEB	= web
 
-DISTFILES= rope.ml rope.mli rope_top.ml LICENSE Makefile
+DISTFILES= _oasis $(wildcard $(addprefix src/, *.ml *.mli)) LICENSE Makefile \
+  $(wildcard $(addprefix bench/, *.ml *.mli))
 
 .PHONY: all byte native configure doc test install uninstall reinstall
 
@@ -29,7 +30,7 @@ dist tar: $(DISTFILES)
 	cp --parents -r $(DISTFILES) $(PKGNAME)-$(PKGVERSION)/
 #	Generate a setup.ml independent of oasis
 	cd $(PKGNAME)-$(PKGVERSION) && oasis setup
-	tar -zcvf $(PKG_TARBALL) $(PKGNAME)-$(PKGVERSION)
+	tar -zcvf $(TARBALL) $(PKGNAME)-$(PKGVERSION)
 	$(RM) -rf $(PKGNAME)-$(PKGVERSION)
 
 # Release a Sourceforge tarball and publish the HTML doc
