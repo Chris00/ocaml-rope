@@ -28,3 +28,9 @@ Install with:
 [opam]: http://opam.ocaml.org/
 [oasis]: http://oasis.forge.ocamlcore.org/
 [ocamlbuild]: http://opam.ocaml.org/packages/ocamlbuild/ocamlbuild.0/
+
+Documentation
+-------------
+
+You can read the interface `rope.mli` [in this repository](src/rope.mli) or
+[as HTML](http://rope.forge.ocamlcore.org/).
