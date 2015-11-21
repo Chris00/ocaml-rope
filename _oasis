@@ -14,7 +14,7 @@ Authors:     Christophe Troestler
 Maintainers: Christophe Troestler <Christophe.Troestler@umons.ac.be>
 Categories:  http://datastructure
 License:     LGPL-2.1 with OCaml linking exception
-Homepage:    http://rope.forge.ocamlcore.org/
+Homepage:    https://github.com/Chris00/ocaml-rope
 Plugins:     META (0.3), StdFiles (0.3)
 
 Library rope
@@ -53,5 +53,5 @@ Executable bm_rope
 
 SourceRepository master
   Type:       git
-  Location:   https://forge.ocamlcore.org/anonscm/git/rope/rope.git
-  Browser:    https://forge.ocamlcore.org/scm/browser.php?group_id=101
+  Location:   https://github.com/Chris00/ocaml-rope.git
+  Browser:    https://github.com/Chris00/ocaml-rope
