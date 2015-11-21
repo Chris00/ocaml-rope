@@ -4,9 +4,9 @@ let empty = Rope.empty
 let ( ^^ ) = Rope.concat2
 
 let rec random_string len =
-  let s = String.create len in
-  for i = 0 to len - 1 do s.[i] <- Char.chr(Random.int 255) done;
-  s
+  let s = Bytes.create len in
+  for i = 0 to len - 1 do Bytes.set s i (Char.chr(Random.int 255)) done;
+  Bytes.unsafe_to_string s
 
 (* Creates the list [[f 0;...; f(len - 1)]] *)
 let list_init len f =

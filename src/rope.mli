@@ -227,12 +227,12 @@ val prerr_endline : t -> unit
   (** Print a rope, followed by a newline character on standard error
       and flush standard error. *)
 
-val output_string : out_channel -> t -> unit
-  (** [output_string oc r] outputs the rope [r] to the output channel [oc].
-      May also be used with a [%a] directive of printf. *)
-
 val output_rope : out_channel -> t -> unit
-  (** Alias for {!Rope.output_string}. *)
+(** [output_rope oc r] outputs the rope [r] to the output channel [oc].
+    May also be used with a [%a] directive of printf. *)
+
+val output_string : out_channel -> t -> unit
+(** Alias for {!Rope.output_rope} to be a drop in replacement for strings. *)
 
 
 

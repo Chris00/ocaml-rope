@@ -19,6 +19,7 @@ Plugins:     META (0.3), StdFiles (0.3)
 
 Library rope
   Path:       src
+  BuildDepends: bytes
   BuildTools: ocamlbuild
   Modules:    Rope
 

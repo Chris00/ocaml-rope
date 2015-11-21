@@ -177,19 +177,18 @@ let of_char c = Sub(String.make 1 c, 0, 1)
    [String.blit] for efficiency.) *)
 let rec copy_to_substring t ofs = function
   | Sub(s, i0, len) ->
-      assert(i0 >= 0 && len >= 0 && i0 <= String.length s - len);
-      assert(ofs >= 0 && ofs <= String.length t - len);
-      String.unsafe_blit s i0 t ofs len
+      Bytes.blit_string s i0 t ofs len
   | Concat(_, _, l,ll, r) ->
       copy_to_substring t ofs l;
       copy_to_substring t (ofs + ll) r
 
 let to_string r =
   let len = length r in
-  if len > Sys.max_string_length then failwith "Rope.string_of_rope";
-  let t = String.create len in
+  if len > Sys.max_string_length then
+    failwith "Rope.to_string: rope length > Sys.max_string_length";
+  let t = Bytes.create len in
   copy_to_substring t 0 r;
-  t
+  Bytes.unsafe_to_string t
 
 (* Flatten a rope (avoids unecessary copying). *)
 let flatten r = match r with
@@ -197,9 +196,9 @@ let flatten r = match r with
   | _ ->
       let len = length r in
       assert(len <= Sys.max_string_length);
-      let t = String.create len in
+      let t = Bytes.create len in
       copy_to_substring t 0 r;
-      Sub(t, 0, len)
+      Sub(Bytes.unsafe_to_string t, 0, len)
 
 let rec get rope i = match rope with
   | Sub(s, i0, len) ->
@@ -385,10 +384,10 @@ let rec concat2_nonempty rope1 rope2 =
   | Sub(s1,i1,len1), Sub(s2,i2,len2) ->
       let len = len1 + len2 in
       if len <= small_rope_length then
-        let s = String.create len in
-        String.unsafe_blit s1 i1 s 0 len1;
-        String.unsafe_blit s2 i2 s len1 len2;
-        Sub(s, 0, len)
+        let s = Bytes.create len in
+        Bytes.blit_string s1 i1 s 0 len1;
+        Bytes.blit_string s2 i2 s len1 len2;
+        Sub(Bytes.unsafe_to_string s, 0, len)
       else
         Concat(1, len, rope1, len1, rope2)
   | Concat(h1, len1, l1,ll1, (Sub(s1, i1, lens1) as leaf1)), _
@@ -397,10 +396,10 @@ let rec concat2_nonempty rope1 rope2 =
       let len = len1 + len2
       and lens = lens1 + len2 in
       if lens <= small_rope_length then
-        let s = String.create lens in
-        String.unsafe_blit s1 i1 s 0 lens1;
+        let s = Bytes.create lens in
+        Bytes.blit_string s1 i1 s 0 lens1;
         copy_to_substring s lens1 rope2;
-        Concat(h1, len, l1,ll1, Sub(s, 0, lens))
+        Concat(h1, len, l1,ll1, Sub(Bytes.unsafe_to_string s, 0, lens))
       else begin
         try
           let left = relocate_topright l1 leaf1 lens1 in
@@ -425,10 +424,10 @@ let rec concat2_nonempty rope1 rope2 =
       let len = len1 + len2
       and lens = len1 + lens2 in
       if lens <= small_rope_length then
-        let s = String.create lens in
+        let s = Bytes.create lens in
         copy_to_substring s 0 rope1;
-        String.unsafe_blit s2 i2 s len1 lens2;
-        Concat(h2, len, Sub(s, 0, lens), lens, r2)
+        Bytes.blit_string s2 i2 s len1 lens2;
+        Concat(h2, len, Sub(Bytes.unsafe_to_string s, 0, lens), lens, r2)
       else begin
         try
           let right = relocate_topleft leaf2 lens2 r2 in
@@ -455,10 +454,10 @@ let rec concat2_nonempty rope1 rope2 =
          right, then left,...  This costs a bit of time but is a good
          defense. *)
       if len <= small_rope_length then
-        let s = String.create len in
+        let s = Bytes.create len in
         copy_to_substring s 0 rope1;
         copy_to_substring s len1 rope2;
-        Sub(s, 0, len)
+        Sub(Bytes.unsafe_to_string s, 0, len)
       else begin
         let rope1 =
           if len1 <= small_rope_length then flatten rope1 else rope1
@@ -496,9 +495,7 @@ let concat2 rope1 rope2 =
     starting at character [i] and of length [len] to [flat.[j ..]]. *)
 let rec sub_to_substring flat j i len = function
   | Sub(s, i0, lens) ->
-      assert(i >= 0 && i <= lens - len);
-      assert(j >= 0 && j + len <= String.length flat);
-      String.unsafe_blit s (i0 + i) flat j len
+      Bytes.blit_string s (i0 + i) flat j len
   | Concat(_, rope_len, l, ll, r) ->
       let ri = i - ll in
       if ri >= 0 then (* only right branch *)
@@ -514,9 +511,9 @@ let rec sub_to_substring flat j i len = function
 
 let flatten_subrope rope i len =
   assert(len <= Sys.max_string_length);
-  let flat = String.create len in
+  let flat = Bytes.create len in
   sub_to_substring flat 0 i len rope;
-  Sub(flat, 0, len)
+  Sub(Bytes.unsafe_to_string flat, 0, len)
 ;;
 
 (* Are lazy sub-rope nodes really needed? *)
@@ -629,9 +626,11 @@ let rcontains_from r i c =
 
 let rec map f = function
   | Sub(s, i0, len) ->
-      let s = String.sub s i0 len in
-      for i = 0 to len - 1 do s.[i] <- f s.[i] done;
-      Sub(s, 0, len)
+      let s' = Bytes.create len in
+      for i = 0 to len - 1 do
+        Bytes.set s' i (f (String.unsafe_get s (i0+i)))
+      done;
+      Sub(Bytes.unsafe_to_string s', 0, len)
   | Concat(h, len, l, ll, r) -> Concat(h, len, map f l, ll, map f r)
 
 let lowercase r = map Char.lowercase r
@@ -656,9 +655,10 @@ let rec map1 f = function
   | Concat(h, len, l, ll, r) -> Concat(h, len, map1 f l, ll, r)
   | Sub(s, i0, len) ->
       if len = 0 then empty else begin
-        let s = String.sub s i0 len in (* copy the string *)
-        s.[0] <- f s.[0];
-        Sub(s, 0, len)
+        let s' = Bytes.create len in
+        Bytes.set s' 0 (f (String.unsafe_get s i0));
+        Bytes.blit_string s (i0 + 1) s' 1 (len - 1);
+        Sub(Bytes.unsafe_to_string s', 0, len)
       end
 
 let capitalize r = map1 Char.uppercase r
@@ -798,7 +798,7 @@ let equal r1 r2 =
  ***********************************************************************)
 let init_next p =
   let m = String.length p in
-  let next = Array.create m 0 in
+  let next = Array.make m 0 in
   let i = ref 1 and j = ref 0 in
   while !i < m - 1 do
     if p.[!i] = p.[!j] then begin incr i; incr j; next.(!i) <- !j end
@@ -836,7 +836,7 @@ module Buffer = struct
                                                      ^ String.sub buf 0 pos]
   *)
   type t = {
-    mutable buf: string;
+    mutable buf: Bytes.t;
     buf_len: int; (* = String.length buf; must be > 0 *)
     mutable pos: int;
     mutable length: int; (* the length of the rope contained in this buffer
@@ -852,7 +852,7 @@ module Buffer = struct
       if n < 1 then small_rope_length else
         if n > Sys.max_string_length then Sys.max_string_length
         else n in
-    { buf = String.create n;
+    { buf = Bytes.create n;
       buf_len = n;
       pos = 0;
       length = 0;
@@ -873,13 +873,14 @@ module Buffer = struct
 	buffer length will exceed the int range";
     if b.pos >= b.buf_len then (
       (* Buffer full, add it to the forest and allocate a new one: *)
-      add_nonempty_to_forest b.forest (Sub(b.buf, 0, b.buf_len));
-      b.buf <- String.create b.buf_len;
-      b.buf.[0] <- c;
+      add_nonempty_to_forest
+        b.forest (Sub(Bytes.unsafe_to_string b.buf, 0, b.buf_len));
+      b.buf <- Bytes.create b.buf_len;
+      Bytes.set b.buf 0 c;
       b.pos <- 1;
     )
     else (
-      b.buf.[b.pos] <- c;
+      Bytes.set b.buf b.pos c;
       b.pos <- b.pos + 1;
     );
     b.length <- b.length + 1
@@ -896,9 +897,10 @@ module Buffer = struct
     )
     else (
       (* Complete [buf] and add it to the forest: *)
-      String.blit s ofs b.buf b.pos buf_left;
-      add_nonempty_to_forest b.forest (Sub(b.buf, 0, b.buf_len));
-      b.buf <- String.create b.buf_len;
+      Bytes.blit_string s ofs b.buf b.pos buf_left;
+      add_nonempty_to_forest
+        b.forest (Sub(Bytes.unsafe_to_string b.buf, 0, b.buf_len));
+      b.buf <- Bytes.create b.buf_len;
       b.pos <- 0;
       (* Add the remaining of [s] to to forest (it is already
          balanced by of_substring, so we add is as such): *)
@@ -920,7 +922,7 @@ module Buffer = struct
       if b.length > max_int - len then failwith "Rope.Buffer.add_rope: \
 	buffer length will exceed the int range";
       (* First add the part hold by [buf]: *)
-      add_to_forest b.forest (Sub(String.sub b.buf 0 b.pos, 0, b.pos));
+      add_to_forest b.forest (Sub(Bytes.sub_string b.buf 0 b.pos, 0, b.pos));
       b.pos <- 0;
       (* I thought [balance_insert b.forest r] was going to rebalance
          [r] taking into account the content already in the buffer but
@@ -934,7 +936,7 @@ module Buffer = struct
   let add_buffer b b2 =
     if b.length > max_int - b2.length then failwith "Rope.Buffer.add_buffer: \
 	buffer length will exceed the int range";
-    add_to_forest b.forest (Sub(String.sub b.buf 0 b.pos, 0, b.pos));
+    add_to_forest b.forest (Sub(Bytes.sub_string b.buf 0 b.pos, 0, b.pos));
     b.pos <- 0;
     let forest = b.forest in
     let forest2 = b2.forest in
@@ -956,17 +958,19 @@ module Buffer = struct
     else (
       (* [len > buf_left]. Complete [buf] and add it to the forest: *)
       really_input ic b.buf b.pos buf_left;
-      add_nonempty_to_forest b.forest (Sub(b.buf, 0, b.buf_len));
+      add_nonempty_to_forest
+        b.forest (Sub(Bytes.unsafe_to_string b.buf, 0, b.buf_len));
       (* Read the remaining from the channel *)
       let len = ref(len - buf_left) in
       while !len >= b.buf_len do
-        let s = String.create b.buf_len in
+        let s = Bytes.create b.buf_len in
         really_input ic s 0 b.buf_len;
-        add_nonempty_to_forest b.forest (Sub(s, 0, b.buf_len));
+        add_nonempty_to_forest
+          b.forest (Sub(Bytes.unsafe_to_string s, 0, b.buf_len));
         len := !len - b.buf_len;
       done;
       (* [!len < b.buf_len] to read, put them into a new [buf]: *)
-      let s = String.create b.buf_len in
+      let s = Bytes.create b.buf_len in
       really_input ic s 0 !len;
       b.buf <- s;
       b.pos <- !len;
@@ -985,7 +989,7 @@ module Buffer = struct
   let nth b i =
     if i < 0 || i >= b.length then raise(Out_of_bounds "Rope.Buffer.nth");
     let forest_len = b.length - b.pos in
-    if i >= forest_len then b.buf.[i - forest_len]
+    if i >= forest_len then Bytes.get b.buf (i - forest_len)
     else nth_forest b.forest 0 i forest_len
   ;;
 
@@ -1000,7 +1004,7 @@ module Buffer = struct
     let buf_i1 = i1 - forest_len in
     if buf_i1 >= len then
       (* The subrope is entirely in [buf] *)
-      Sub(String.sub b.buf (i0 - forest_len) len, 0, len)
+      Sub(Bytes.sub_string b.buf (i0 - forest_len) len, 0, len)
     else begin
       let n = ref 0 in
       let sum = ref empty in
@@ -1013,7 +1017,8 @@ module Buffer = struct
           if !n = level_flatten then sum := flatten !sum;
           incr n
         done;
-        sum := balance_concat !sum (Sub(String.sub b.buf 0 buf_i1, 0, buf_i1))
+        sum := balance_concat
+                 !sum (Sub(Bytes.sub_string b.buf 0 buf_i1, 0, buf_i1))
       )
       else (
         (* Subrope in the forest.  Skip the forest elements until
@@ -1089,7 +1094,7 @@ let input_line ?(leaf_length=128) chan =
 let read_line () = flush stdout; input_line stdin
 
 let rec output_string fh = function
-  | Sub(s, i0, len) -> output fh s i0 len
+  | Sub(s, i0, len) -> output fh (Bytes.unsafe_of_string s) i0 len
   | Concat(_, _, l,_, r) -> output_string fh l; output_string fh r
 ;;
 
@@ -1183,5 +1188,5 @@ end
 
 
 (* Local Variables: *)
-(* compile-command: "ocamlbuild -classic-display all.otarget" *)
+(* compile-command: "make -k -C.." *)
 (* End: *)

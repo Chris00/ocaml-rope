@@ -238,9 +238,9 @@ let rec set i v = function
     Empty -> raise Out_of_bounds
   | Leaf s ->
       if i >= 0 && i < STRING.length s then
-        let s = STRING.copy s in
-          STRING.unsafe_set s i v;
-          Leaf s
+        let s = Bytes.of_string s in
+        Bytes.unsafe_set s i v;
+        Leaf (Bytes.unsafe_to_string s)
       else raise Out_of_bounds
   | Concat(l, cl, r, cr, _) ->
       if i < cl then concat (set i v l) r
