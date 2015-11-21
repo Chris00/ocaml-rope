@@ -7,3 +7,4 @@ setup.data
 setup.log
 bench/*.dat
 *.tar.gz
+*.svg

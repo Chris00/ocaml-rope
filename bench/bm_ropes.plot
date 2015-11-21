@@ -1,15 +1,16 @@
 hardcopy = 1
 
-if (hardcopy) set terminal png size 650,800
+if (hardcopy) set terminal svg size 650,800 background rgb 'white'
 set grid
 
 set logscale x
-if (hardcopy) set output "append.png"; else \
+set format y "%g"
+if (hardcopy) set output "append.svg"; else \
   set terminal wxt 1 enhanced raise
 set multiplot layout 2,1 downwards
 set key right
 set title "Min. unitary append time"
-plot [:] [0.5e-7:5.7e-7] \
+plot [:] [0.5e-7:4.7e-7] \
    "append.dat" using 1:2 with linespoints title "Tiny (unbalanced)", \
    "append.dat" using 1:4 with linespoints title "FullFeatured (unbalanced)", \
    "append-balanced.dat" using 1:2 with lines title "Tiny (balanced)", \
@@ -24,7 +25,7 @@ plot \
    "append-balanced.dat" using 1:5 with lines title "FullFeatured (balanced)"
 set ylabel ""
 unset grid
-set origin 0.1, 0.7
+set origin 0.1, 0.68
 set size 0.45,0.25
 plot [4e6:] \
    "append.dat" using 1:2 with lines notitle, \
@@ -34,7 +35,7 @@ unset multiplot
 unset ylabel
 
 set grid
-if (hardcopy) set output "get.png"; else set terminal wxt 2 raise
+if (hardcopy) set output "get.svg"; else set terminal wxt 2 raise
 set multiplot layout 2,1 downwards
 set key top left
 set title "Min. unitary random get time"
@@ -55,7 +56,7 @@ plot \
 unset multiplot
 unset ylabel
 
-if (hardcopy) set output "sub.png"; else set terminal wxt 3 raise
+if (hardcopy) set output "sub.svg"; else set terminal wxt 3 raise
 set multiplot layout 2,1 downwards
 set key top left
 set title "Min. unitary random sub time"
@@ -74,7 +75,7 @@ plot \
 unset multiplot
 unset logscale x
 
-if (hardcopy) set output "qsort.png"; else set terminal wxt 4 raise
+if (hardcopy) set output "qsort.svg"; else set terminal wxt 4 raise
 set multiplot layout 2,1 downwards
 set key top left
 set title "Min. unitary random qsort time"

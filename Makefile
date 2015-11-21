@@ -22,6 +22,13 @@ setup.ml: _oasis
 test doc install uninstall reinstall: all
 	ocaml setup.ml -$@
 
+# Benchmarks
+bench: native
+	./bm_ropes.native && cd bench && gnuplot -persist bm_ropes.plot
+
+bench.byte: byte
+	./bm_ropes.bytes  && cd bench && gnuplot -persist bm_ropes.plot
+
 
 
 .PHONY: dist tar
