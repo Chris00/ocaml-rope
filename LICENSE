@@ -1,3 +1,7 @@
+This license applies to all the files in this repository except to
+bench/tinyRope.ml which was copied only to easily enable some
+benchmarks (as it is no longer available on the Internet).
+
 This Library is distributed under the terms of the GNU Lesser General
 Public License version 2.1 (included below) or, at your choice, any
 later version.
