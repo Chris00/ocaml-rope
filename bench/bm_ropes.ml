@@ -270,7 +270,7 @@ let benchmark dst measl =
     Array.fold_left (fun bm size -> IMap.add size (f size) bm)
       IMap.empty datapoints in
   let times = List.map gather_times measl in
-  let ch = open_out (Filename.concat "bench" dst) in
+  let ch = open_out dst in
   Array.iter (fun size ->
     fprintf ch "%d" size;
     List.iter (fun tbl ->

@@ -1,0 +1,7 @@
+(jbuild_version 1)
+
+(library
+ ((name        rope)
+  (public_name rope)
+  (synopsis  "Ropes (\"heavyweight strings\")")))
+

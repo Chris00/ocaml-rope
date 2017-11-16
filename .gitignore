@@ -1,10 +1,6 @@
-*.byte
-*.native
 _build
-*.docdir
-.depend.ocaml
-setup.data
-setup.log
+.merlin
+*.install
 bench/*.dat
 *.tar.gz
 *.svg

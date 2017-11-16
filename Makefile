@@ -1,44 +1,23 @@
-PKGNAME	    = $(shell oasis query name)
-PKGVERSION  = $(shell oasis query version)
-TARBALL = $(PKGNAME)-$(PKGVERSION).tar.gz
+PKGVERSION = $(shell git describe --always --dirty)
 
 WEB = rope.forge.ocamlcore.org:/home/groups/rope/htdocs
 SRC_WEB	= web
 
-DISTFILES= _oasis $(wildcard $(addprefix src/, *.ml *.mli)) LICENSE Makefile \
-  $(wildcard $(addprefix bench/, *.ml *.mli))
+all build:
+	jbuilder build @install #--dev
+test runtest:
+# Force the tests to be run
+	$(RM) -rf _build/default/tests/
+	jbuilder runtest
 
-.PHONY: all byte native configure doc test install uninstall reinstall
-
-all byte native: configure
-	ocaml setup.ml -build
-
-configure: setup.ml
-	ocaml $< -configure --enable-tests
-
-setup.ml: _oasis
-	oasis setup -setup-update dynamic
-
-test doc install uninstall reinstall: all
-	ocaml setup.ml -$@
+install uninstall:
+	jbuilder $@
 
 # Benchmarks
-bench: native
-	./bm_ropes.native && cd bench && gnuplot -persist bm_ropes.plot
-
-bench.byte: byte
-	./bm_ropes.bytes  && cd bench && gnuplot -persist bm_ropes.plot
-
-
-
-.PHONY: dist tar
-dist tar: $(DISTFILES)
-	mkdir $(PKGNAME)-$(PKGVERSION)
-	cp --parents -r $(DISTFILES) $(PKGNAME)-$(PKGVERSION)/
-#	Generate a setup.ml independent of oasis
-	cd $(PKGNAME)-$(PKGVERSION) && oasis setup
-	tar -zcvf $(TARBALL) $(PKGNAME)-$(PKGVERSION)
-	$(RM) -rf $(PKGNAME)-$(PKGVERSION)
+bench:
+	jbuilder build @bench \
+	  && cd _build/default/bench/ && gnuplot -persist bm_ropes.plot
+	@echo "Bench results: SGV in _build/default/bench/"
 
 # Release a Sourceforge tarball and publish the HTML doc
 .PHONY: web upload
@@ -53,9 +32,8 @@ web:
 	  && echo "*** Published web site ($(SRC_WEB)/)" ; \
 	fi
 
-
-.PHONY: clean
 clean::
-	ocaml setup.ml -clean
-	$(RM) -f *.cm{i,o,x,a,xa} *.annot *.o *.a *~ META _log $(TARBALL)
+	jbuilder clean
 	$(RM) $(wildcard bench/*.dat)
+
+.PHONY: all build test runtest bench clean
