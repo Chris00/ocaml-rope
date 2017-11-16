@@ -141,11 +141,8 @@ let print =
   fun r -> List.iter print_endline (leaves_list r)
 ;;
 
-let unsafe_of_string s = Sub(s, 0, String.length s)
-  (* Not for general consumption.  Can be useful for literal strings
-     in a source (thus for some camlp4 automatic transformation).
-     FIXME: Maybe we do not even want to provide this as it allows
-     to construct big leaves. *)
+let of_string s = Sub(s, 0, String.length s)
+(* safe: string is now immutable *)
 
 (* Since we will need to copy the string anyway, let us take this
    opportunity to split it in small chunks for easier further
@@ -163,11 +160,13 @@ let rec unsafe_of_substring s i len =
     Concat(h, ll + length right, left, ll, right)
 
 let of_substring s i len =
-  if i < 0 || len < 0 || i > String.length s - len then
-    invalid_arg "Rope.of_substring";
-  unsafe_of_substring s i len
-
-let of_string s = unsafe_of_substring s 0 (String.length s)
+  let len_s = String.length s in
+  if i < 0 || len < 0 || i > len_s - len then invalid_arg "Rope.of_substring";
+  (* If only a small percentage of the string is not in the rope, do
+     not cut the string in small pieces.  The case of small lengths is
+     managed by [unsafe_of_substring]. *)
+  if len >= len_s - (len / 10) then Sub(s, i, len)
+  else unsafe_of_substring s i len
 
 let of_char c = Sub(String.make 1 c, 0, 1)
 
@@ -182,18 +181,23 @@ let rec copy_to_substring t ofs = function
       copy_to_substring t ofs l;
       copy_to_substring t (ofs + ll) r
 
-let to_string r =
-  let len = length r in
-  if len > Sys.max_string_length then
-    failwith "Rope.to_string: rope length > Sys.max_string_length";
-  let t = Bytes.create len in
-  copy_to_substring t 0 r;
-  Bytes.unsafe_to_string t
+let to_string = function
+  | Sub(s, i0, len) ->
+     (* Optimize when the rope hold a single string. *)
+     if i0 = 0 && len = String.length s then s
+     else String.sub s i0 len
+  | r ->
+     let len = length r in
+     if len > Sys.max_string_length then
+       failwith "Rope.to_string: rope length > Sys.max_string_length";
+     let t = Bytes.create len in
+     copy_to_substring t 0 r;
+     Bytes.unsafe_to_string t
 
 (* Flatten a rope (avoids unecessary copying). *)
-let flatten r = match r with
-  | Sub(_,_,_) -> r
-  | _ ->
+let flatten = function
+  | Sub(_,_,_) as r -> r
+  | r ->
       let len = length r in
       assert(len <= Sys.max_string_length);
       let t = Bytes.create len in

@@ -42,9 +42,8 @@
     You can say [module String = Rope] to use ropes instead of strings
     and, in particular, so that [r.[i]] gets the [i]th char of the
     rope [r].  This module has most operations of [String] but not all:
-    it does not have [set] because ropes are immutable, not [make]
-    because it is basically useless in this context (the {!Rope.Buffer}
-    is more powerful),...
+    it does not have [make] because it is basically useless in this
+    context (the {!Rope.Buffer} is more powerful),...
 
     To use this library in the toploop (REPL), issue
     [#require "rope.top";;].
@@ -65,11 +64,10 @@ val empty : t
   (** The empty rope. *)
 
 val of_string : string -> t
-  (** [of_string s] creates a rope from the string [s].  Because ropes are
-      immutable while strings are not, a copy of [s] is made.  *)
+  (** [of_string s] creates a rope from the string [s].  *)
 
 val of_substring : string -> int -> int -> t
-  (** [of_substring s start len] create a new rope from the substring
+  (** [of_substring s start len] create a rope from the substring
       [s.[start .. start+len-1]].
       @raise Invalid_argument if [start] and [len] do not designate a valid
       sbstring of [s]. *)
@@ -79,8 +77,7 @@ val of_char : char -> t
       [c].  It may be useful to append a char to a given rope. *)
 
 val to_string : t -> string
-  (** [to_string r] return a string with the same content as the
-      rope.  The rope and the string share no data.
+  (** [to_string r] return a string with the same content as the rope.
       @raise Failure if the rope is too long to fit into a string. *)
 
 val is_empty : t -> bool
@@ -390,8 +387,6 @@ end
 
 (** {2 For system use} *)
 
-val unsafe_of_string : string -> t
-val unsafe_of_substring : string -> int -> int -> t
 val number_leaves : t -> int
 val number_concat : t -> int
 val print : t -> unit
