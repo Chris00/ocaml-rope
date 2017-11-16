@@ -3,5 +3,6 @@
 (library
  ((name        rope)
   (public_name rope)
-  (synopsis  "Ropes (\"heavyweight strings\")")))
+  (flags      (:standard -safe-string))
+  (synopsis  "Ropes (heavyweight strings)")))
 

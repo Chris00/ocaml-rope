@@ -46,7 +46,8 @@
     because it is basically useless in this context (the {!Rope.Buffer}
     is more powerful),...
 
-    To use this library in the toploop, issue [#use "rope_top.ml";;]
+    To use this library in the toploop (REPL), issue
+    [#require "rope.top";;].
 
     @author Christophe Troestler
 *)
