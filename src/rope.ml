@@ -25,7 +25,7 @@
     http://www.cs.ubc.ca/local/reading/proceedings/spe91-95/spe/vol25/issue12/spe986.pdf *)
 
 (* TODO:
-   - Regexp (maybe using Jérôme Vouillon regexp lib ?
+   - Regexp (maybe using JÃ©rÃ´me Vouillon regexp lib ?
      http://www.pps.jussieu.fr/~vouillon/)
 
    - Camomille interop. (with phantom types for encoding ??)
@@ -212,16 +212,16 @@ let init len f =
       Bytes.unsafe_to_string b in
     make_of_gen gen 0 len ~n:(make_n_chunks len)
 
-(* [copy_to_substring t ofs r] copy the rope [r] to the substring
+(* [copy_to_subbytes t ofs r] copy the rope [r] to the byte range
    [t.[ofs .. ofs+(length r)-1]].  It is assumed that [t] is long enough.
    (This function could be a one liner with [iteri] but we want to use
-   [String.blit] for efficiency.) *)
-let rec copy_to_substring t ofs = function
+   [Bytes.blit_string] for efficiency.) *)
+let rec copy_to_subbytes t ofs = function
   | Sub(s, i0, len) ->
       Bytes.blit_string s i0 t ofs len
   | Concat(_, _, l,ll, r) ->
-      copy_to_substring t ofs l;
-      copy_to_substring t (ofs + ll) r
+      copy_to_subbytes t ofs l;
+      copy_to_subbytes t (ofs + ll) r
 
 let to_string = function
   | Sub(s, i0, len) ->
@@ -233,8 +233,35 @@ let to_string = function
      if len > Sys.max_string_length then
        failwith "Rope.to_string: rope length > Sys.max_string_length";
      let t = Bytes.create len in
-     copy_to_substring t 0 r;
+     copy_to_subbytes t 0 r;
      Bytes.unsafe_to_string t
+
+(* Similar to [copy_to_subbytes] do more work to allow specifying a
+   range of [src]. *)
+let rec unsafe_blit src srcofs dst dstofs len =
+  match src with
+  | Sub(s, i0, _) ->
+     String.blit s (i0 + srcofs) dst dstofs len
+  | Concat(_, _, l, ll, r) ->
+     let rofs = srcofs - ll in
+     if rofs >= 0 then
+       unsafe_blit r rofs dst dstofs len
+     else
+       let llen = - rofs in (* # of chars after [srcofs] in the left rope *)
+       if len <= llen then
+         unsafe_blit l srcofs dst dstofs len
+       else (* len > llen *) (
+         unsafe_blit l srcofs dst dstofs llen;
+         unsafe_blit r 0      dst (dstofs + llen) (len - llen);
+       )
+
+let blit src srcofs dst dstofs len =
+  if len < 0 then failwith "Rope.blit: len >= 0 required";
+  if srcofs < 0 || srcofs > length src - len then
+    failwith "Rope.blit: not a valid range of src";
+  if dstofs < 0 || dstofs > Bytes.length dst - len then
+    failwith "Rope.blit: not a valid range of dst";
+  unsafe_blit src srcofs dst dstofs len
 
 (* Flatten a rope (avoids unecessary copying). *)
 let flatten = function
@@ -243,7 +270,7 @@ let flatten = function
       let len = length r in
       assert(len <= Sys.max_string_length);
       let t = Bytes.create len in
-      copy_to_substring t 0 r;
+      copy_to_subbytes t 0 r;
       Sub(Bytes.unsafe_to_string t, 0, len)
 
 let rec get rope i = match rope with
@@ -444,7 +471,7 @@ let rec concat2_nonempty rope1 rope2 =
       if lens <= small_rope_length then
         let s = Bytes.create lens in
         Bytes.blit_string s1 i1 s 0 lens1;
-        copy_to_substring s lens1 rope2;
+        copy_to_subbytes s lens1 rope2;
         Concat(h1, len, l1,ll1, Sub(Bytes.unsafe_to_string s, 0, lens))
       else begin
         try
@@ -471,7 +498,7 @@ let rec concat2_nonempty rope1 rope2 =
       and lens = len1 + lens2 in
       if lens <= small_rope_length then
         let s = Bytes.create lens in
-        copy_to_substring s 0 rope1;
+        copy_to_subbytes s 0 rope1;
         Bytes.blit_string s2 i2 s len1 lens2;
         Concat(h2, len, Sub(Bytes.unsafe_to_string s, 0, lens), lens, r2)
       else begin
@@ -501,8 +528,8 @@ let rec concat2_nonempty rope1 rope2 =
          defense. *)
       if len <= small_rope_length then
         let s = Bytes.create len in
-        copy_to_substring s 0 rope1;
-        copy_to_substring s len1 rope2;
+        copy_to_subbytes s 0 rope1;
+        copy_to_subbytes s len1 rope2;
         Sub(Bytes.unsafe_to_string s, 0, len)
       else begin
         let rope1 =
@@ -1236,7 +1263,7 @@ module Regexp = struct
 end
 
 
-
+;;
 (* Local Variables: *)
 (* compile-command: "make -k -C.." *)
 (* End: *)

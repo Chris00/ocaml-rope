@@ -104,6 +104,11 @@ val sub : t -> int -> int -> t
       @raise Invalid_argument if [i < 0], [len < 0] or [i + len >
       Rope.length r]. *)
 
+val blit : t -> int -> Bytes.t -> int -> int -> unit
+(** [blit src srcoff dst dstoff len] copies [len] bytes from the rope
+   [src] starting at index [srcoff], to sequence [dst], starting at
+   index [dstoff]. *)
+
 val concat2 : t -> t -> t
   (** [concat2 r1 r2] concatenates the ropes [r1] and [r2].  *)
 
