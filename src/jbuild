@@ -4,5 +4,6 @@
  ((name        rope)
   (public_name rope)
   (flags      (:standard -safe-string))
+  (libraries  (bytes))
   (synopsis  "Ropes (heavyweight strings)")))
 

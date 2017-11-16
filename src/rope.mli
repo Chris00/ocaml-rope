@@ -41,9 +41,8 @@
 
     You can say [module String = Rope] to use ropes instead of strings
     and, in particular, so that [r.[i]] gets the [i]th char of the
-    rope [r].  This module has most operations of [String] but not all:
-    it does not have [make] because it is basically useless in this
-    context (the {!Rope.Buffer} is more powerful),...
+    rope [r].  This module has all non-deprecated operations of [String].
+    It additionally features {!Rope.Buffer} and {!Rope.Iterator} modules.
 
     To use this library in the toploop (REPL), issue
     [#require "rope.top";;].
@@ -75,6 +74,13 @@ val of_substring : string -> int -> int -> t
 val of_char : char -> t
   (** [of_char c] returns a rope consisting of the unique character
       [c].  It may be useful to append a char to a given rope. *)
+
+val make : int -> char -> t
+(** [make len c] returns a rope of length [len] filled with [c]. *)
+
+val init : int -> (int -> char) -> t
+(** [init len f] returns a rope of length [len] with entry of index
+   [i] filled with [f i]. *)
 
 val to_string : t -> string
   (** [to_string r] return a string with the same content as the rope.

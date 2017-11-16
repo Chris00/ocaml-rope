@@ -62,6 +62,9 @@ let small_rope_length = 32
       This value must be quite small, typically comparable to the size
       of a [Concat] node. *)
 
+let make_length_pow2 = 10
+let make_length = 1 lsl make_length_pow2
+
 let max_flatten_length = 1024
   (** When deciding whether to flatten a rope, only those with length [<=
       max_flatten_length] will be. *)
@@ -169,6 +172,45 @@ let of_substring s i len =
   else unsafe_of_substring s i len
 
 let of_char c = Sub(String.make 1 c, 0, 1)
+
+(* Construct a rope from [n-1] copies of a call to [gen ofs len] of
+   length [len = make_length] and a last call with the remainder
+   length.  So the tree has [n] leaves [Sub].  The strings returned by
+   [gen ofs len] may be longer than [len] of only the first [len]
+   chars will be used. *)
+let rec make_of_gen gen ofs len ~n =
+  if n <= 1 then
+    if len > 0 then Sub(gen ofs len, 0, len) else empty
+  else
+    let nl = n / 2 in
+    let ll = nl * max_flatten_length in
+    let l = make_of_gen gen ofs ll ~n:nl in
+    let r = make_of_gen gen (ofs + ll) (len - ll) ~n:(n - nl) in
+    Concat(1 + max (height l) (height r), len, l, ll, r)
+
+let make_length_mask = make_length - 1
+
+let make_n_chunks len =
+  if len land make_length_mask = 0 then len lsr make_length_pow2
+  else len lsr make_length_pow2 + 1
+
+let make len c =
+  if len < 0 then failwith "Rope.make: len must be >= 0";
+  if len <= make_length then Sub(String.make len c, 0, len)
+  else
+    let base = String.make make_length c in
+    make_of_gen (fun _ _ -> base) 0 len ~n:(make_n_chunks len)
+
+let init len f =
+  if len < 0 then failwith "Rope.init: len must be >= 0";
+  if len <= make_length then Sub(String.init len f, 0, len)
+  else
+    (* Do not use String.init to avoid creating a closure. *)
+    let gen ofs len =
+      let b = Bytes.create len in
+      for i = 0 to len - 1 do Bytes.set b i (f (ofs + i)) done;
+      Bytes.unsafe_to_string b in
+    make_of_gen gen 0 len ~n:(make_n_chunks len)
 
 (* [copy_to_substring t ofs r] copy the rope [r] to the substring
    [t.[ofs .. ofs+(length r)-1]].  It is assumed that [t] is long enough.
