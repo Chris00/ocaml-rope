@@ -5,6 +5,8 @@ SRC_WEB	= web
 
 all build:
 	jbuilder build @install #--dev
+	jbuilder build bench/bm_ropes.exe bench/bench_rope.exe
+
 test runtest:
 # Force the tests to be run
 	$(RM) -rf _build/default/tests/
