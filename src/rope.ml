@@ -637,8 +637,10 @@ let rec map f = function
       Sub(Bytes.unsafe_to_string s', 0, len)
   | Concat(h, len, l, ll, r) -> Concat(h, len, map f l, ll, map f r)
 
-let lowercase r = map Char.lowercase r
-let uppercase r = map Char.uppercase r
+let lowercase_ascii r = map Char.lowercase_ascii r
+let uppercase_ascii r = map Char.uppercase_ascii r
+let lowercase = lowercase_ascii
+let uppercase = uppercase_ascii
 
 (* FIXME: on could avoid doubly copying the string but it is
    expected to be seldom used for heavy duty... *)
@@ -665,8 +667,10 @@ let rec map1 f = function
         Sub(Bytes.unsafe_to_string s', 0, len)
       end
 
-let capitalize r = map1 Char.uppercase r
-let uncapitalize r = map1 Char.lowercase r
+let capitalize_ascii r = map1 Char.uppercase_ascii r
+let uncapitalize_ascii r = map1 Char.lowercase_ascii r
+let capitalize = capitalize_ascii
+let uncapitalize = uncapitalize_ascii
 
 (** Iterator
  ***********************************************************************)

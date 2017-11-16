@@ -154,23 +154,21 @@ val rcontains_from : t -> int -> char -> bool
       [stop].
       @raise Invalid_argument if [stop] is not a valid index of [r]. *)
 
-val uppercase : t -> t
-  (** Return a copy of the argument, with all lowercase letters
-      translated to uppercase, including accented letters of the ISO
-      Latin-1 (8859-1) character set. *)
+val uppercase_ascii : t -> t
+(** Return the argument with all lowercase letters translated to
+   uppercase, including accented letters of the ISO Latin-1 (8859-1)
+   character set. *)
 
-val lowercase : t -> t
-  (** Return a copy of the argument, with all uppercase letters
-      translated to lowercase, including accented letters of the ISO
-      Latin-1 (8859-1) character set. *)
+val lowercase_ascii : t -> t
+(** Return the argument with all uppercase letters translated to
+   lowercase, including accented letters of the ISO Latin-1 (8859-1)
+   character set. *)
 
-val capitalize : t -> t
-  (** Return a copy of the argument, with the first character set to
-      uppercase. *)
+val capitalize_ascii : t -> t
+(** Return the argument, with the first character set to uppercase. *)
 
-val uncapitalize : t -> t
-  (** Return a copy of the argument, with the first character set to
-      lowercase. *)
+val uncapitalize_ascii : t -> t
+(** Return the argument with the first character set to lowercase. *)
 
 val compare: t -> t -> int
   (** The comparison function for ropes, with the same specification
@@ -183,6 +181,11 @@ val equal : t -> t -> bool
       equal.  (It is equivalent to [compare r1 r2 = 0], just slightly
       faster.) *)
 
+
+val uppercase : t -> t    [@@ocaml.deprecated "Use Rope.uppercase_ascii"]
+val lowercase : t -> t    [@@ocaml.deprecated "Use Rope.lowercase_ascii"]
+val capitalize : t -> t   [@@ocaml.deprecated "Use Rope.capitalize_ascii"]
+val uncapitalize : t -> t [@@ocaml.deprecated "Use Rope.uncapitalize_ascii"]
 
 (** {2 Search} *)
 
