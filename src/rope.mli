@@ -17,23 +17,25 @@
    LICENSE for more details. *)
 
 
-(** Ropes ("heavyweight strings") are a scalable string
-    implementation: they are designed for efficient operation that
+(** Ropes ("heavyweight strings") are a scalable string implementation.
+
+    Ropes are designed for efficient operation that
     involve the string as a whole.  Operations such as concatenation,
     and substring take time that is nearly independent of the length
     of the string.  Unlike strings, ropes are a reasonable
     representation for very long strings such as edit buffers or mail
     messages.
 
-    Advantages:
-    - No length limitation (contrarily to strings)
-    - Immutability (use {!Rope.Buffer} instead)
-    - Efficient concatenation ({!Rope.concat2}) and taking a range
-    ({!Rope.sub}), and sharing memory whenever possible.
+    Features:
+    - No length limitation (contrarily to strings);
+    - Immutability (use {!Rope.Buffer} instead);
+    - Efficient concatenation ({!Rope.concat2}) and splice
+      ({!Rope.sub});
+    - Share memory whenever possible.
 
     Disadvantages:
-    - [get] is not O(1) -- but it is amortized O(1) if you use an
-    iterator (see the {!Rope.Iterator} module).  [get] is 2 to 3 times
+    - [get] is not O(1) — but it is amortized O(1) if you use an
+    iterator (see the {!Rope.Iterator} module).  {!Rope.get} is 2 to 3 times
     slower than for a string so it should not be your main operation.
     However, as soon as in addition you have a few concatenations
     (especially with sharing) or splice operations, ropes will usually
@@ -228,9 +230,17 @@ val equal : t -> t -> bool
 
 
 val uppercase : t -> t    [@@ocaml.deprecated "Use Rope.uppercase_ascii"]
+(** @deprecated Use {!Rope.uppercase_ascii}. *)
+
 val lowercase : t -> t    [@@ocaml.deprecated "Use Rope.lowercase_ascii"]
+(** @deprecated Use {!Rope.lowercase_ascii}. *)
+
 val capitalize : t -> t   [@@ocaml.deprecated "Use Rope.capitalize_ascii"]
+(** @deprecated Use {!Rope.capitalize_ascii}. *)
+
 val uncapitalize : t -> t [@@ocaml.deprecated "Use Rope.uncapitalize_ascii"]
+(** @deprecated Use {!Rope.uncapitalize_ascii}. *)
+
 
 (** {2 Search} *)
 

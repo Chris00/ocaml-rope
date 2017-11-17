@@ -15,6 +15,9 @@ test runtest:
 install uninstall:
 	jbuilder $@
 
+doc:
+	jbuilder build @doc
+
 # Benchmarks
 bench:
 	jbuilder build @bench \
@@ -38,4 +41,4 @@ clean::
 	jbuilder clean
 	$(RM) $(wildcard bench/*.dat)
 
-.PHONY: all build test runtest bench clean
+.PHONY: all build test runtest doc bench clean
