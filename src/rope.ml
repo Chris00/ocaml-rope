@@ -687,13 +687,6 @@ let rec trim_right = function
 
 let trim r = trim_right(trim_left r)
 
-(* Return the index of [c] in [s.[i .. i1-1]] plus the [offset] or
-   [-1] if not found. *)
-let rec index_string offset s i i1 c =
-  if i >= i1 then -1
-  else if s.[i] = c then offset + i
-  else index_string offset s (i+1) i1 c;;
-
 (* Escape the range s.[i0 .. i0+len-1].  Modeled after Bytes.escaped *)
 let escaped_sub s i0 len =
   let n = ref 0 in
@@ -743,6 +736,13 @@ let rec escaped = function
      let r = escaped r in
      Concat(h, ll + length r, l, ll, r)
 
+(* Return the index of [c] in [s.[i .. i1-1]] plus the [offset] or
+   [-1] if not found. *)
+let rec index_string offset s i i1 c =
+  if i >= i1 then -1
+  else if s.[i] = c then offset + i
+  else index_string offset s (i+1) i1 c;;
+
 (* Return the index of [c] from position [i] in the rope or a negative
    value if not found *)
 let rec unsafe_index offset i c = function
@@ -759,9 +759,18 @@ let index_from r i c =
     let j = unsafe_index 0 i c r in
     if j >= 0 then j else raise Not_found
 
+let index_from_opt r i c =
+  if i < 0 || i >= length r then invalid_arg "Rope.index_from_opt";
+  let j = unsafe_index 0 i c r in
+  if j >= 0 then Some j else None
+
 let index r c =
   let j = unsafe_index 0 0 c r in
   if j >= 0 then j else raise Not_found
+
+let index_opt r c =
+  let j = unsafe_index 0 0 c r in
+  if j >= 0 then Some j else None
 
 let contains_from r i c =
   if i < 0 || i >= length r then invalid_arg "Rope.contains_from"
@@ -790,9 +799,18 @@ let rindex_from r i c =
     let j = unsafe_rindex 0 i c r in
     if j >= 0 then j else raise Not_found
 
+let rindex_from_opt r i c =
+  if i < 0 || i > length r then invalid_arg "Rope.rindex_from_opt";
+  let j = unsafe_rindex 0 i c r in
+  if j >= 0 then Some j else None
+
 let rindex r c =
   let j = unsafe_rindex 0 (length r - 1) c r in
   if j >= 0 then j else raise Not_found
+
+let rindex_opt r c =
+  let j = unsafe_rindex 0 (length r - 1) c r in
+  if j >= 0 then Some j else None
 
 let rcontains_from r i c =
   if i < 0 || i >= length r then invalid_arg "Rope.rcontains_from"

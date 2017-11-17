@@ -149,20 +149,41 @@ val index : t -> char -> int
       character [c] in rope [r].
       @raise Not_found if [c] does not occur in [r]. *)
 
+val index_opt : t -> char -> int option
+(** [index r c] returns [Some i] where [i] is the position of the
+   leftmost occurrence of character [c] in rope [r] and [None] if [c]
+   does not occur in [r]. *)
+
 val rindex : t -> char -> int
   (** [rindex r c] returns the position of the rightmost occurrence
       of character [c] in rope [r].
       @raise Not_found if [c] does not occur in [r]. *)
+
+val rindex_opt : t -> char -> int option
+(** [rindex_opt r c] returns [Some i] where [i] is the position of the
+   rightmost occurrence of character [c] in rope [r] or [None] if [c]
+   does not occur in [r]. *)
 
 val index_from : t -> int -> char -> int
   (** Same as {!Rope.index}, but start searching at the character
       position given as second argument.  [Rope.index r c] is
       equivalent to [Rope.index_from r 0 c]. *)
 
+val index_from_opt : t -> int -> char -> int option
+(** Same as {!Rope.index_opt}, but start searching at the character
+   position given as second argument.  [Rope.index_opt r c] is
+   equivalent to [Rope.index_from_opt r 0 c]. *)
+
+
 val rindex_from : t -> int -> char -> int
   (** Same as {!Rope.rindex}, but start searching at the character
       position given as second argument.  [Rope.rindex r c] is
       equivalent to [Rope.rindex_from s (Rope.length r - 1) c]. *)
+
+val rindex_from_opt : t -> int -> char -> int option
+(** Same as {!Rope.rindex_opt}, but start searching at the character
+   position given as second argument.  [Rope.rindex_opt r c] is
+   equivalent to [Rope.rindex_from_opt s (Rope.length r - 1) c]. *)
 
 val contains : t -> char -> bool
   (** [contains r c] tests if character [c] appears in the rope [r]. *)
