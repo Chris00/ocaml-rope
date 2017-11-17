@@ -295,6 +295,30 @@ let rec iteri_rec f init = function
 
 let iteri f r = ignore(iteri_rec f 0 r)
 
+let rec map ~f = function
+  | Sub(s, i0, len) ->
+     let b = Bytes.create len in
+     for i = 0 to len - 1 do
+       Bytes.set b i (f (String.unsafe_get s (i0 + i)))
+     done;
+     Sub(Bytes.unsafe_to_string b, 0, len)
+  | Concat(h, len, l, ll, r) ->
+     let l = map ~f l in
+     let r = map ~f r in
+     Concat(h, len, l, ll, r)
+
+let rec mapi_rec ~f idx0 = function
+  | Sub(s, i0, len) ->
+     let b = Bytes.create len in
+     for i = 0 to len - 1 do Bytes.set b i (f (idx0 + i) s.[i0 + i]) done;
+     Sub(Bytes.unsafe_to_string b, 0, len)
+  | Concat(h, len, l, ll, r) ->
+     let l = mapi_rec ~f idx0 l in
+     let r = mapi_rec ~f (idx0 + ll) r in
+     Concat(h, len, l, ll, r)
+
+let mapi ~f r = mapi_rec ~f 0 r
+
 (** Balancing
  ***********************************************************************)
 
@@ -696,18 +720,8 @@ let rcontains_from r i c =
   if i < 0 || i >= length r then invalid_arg "Rope.rcontains_from"
   else unsafe_rindex 0 i c r >= 0
 
-
-let rec map f = function
-  | Sub(s, i0, len) ->
-      let s' = Bytes.create len in
-      for i = 0 to len - 1 do
-        Bytes.set s' i (f (String.unsafe_get s (i0+i)))
-      done;
-      Sub(Bytes.unsafe_to_string s', 0, len)
-  | Concat(h, len, l, ll, r) -> Concat(h, len, map f l, ll, map f r)
-
-let lowercase_ascii r = map Char.lowercase_ascii r
-let uppercase_ascii r = map Char.uppercase_ascii r
+let lowercase_ascii r = map ~f:Char.lowercase_ascii r
+let uppercase_ascii r = map ~f:Char.uppercase_ascii r
 let lowercase = lowercase_ascii
 let uppercase = uppercase_ascii
 

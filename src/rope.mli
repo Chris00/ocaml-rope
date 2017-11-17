@@ -125,6 +125,15 @@ val iteri : (int -> char -> unit) -> t -> unit
       character of rope [r] from left to right and [i] the index of
       [c]. *)
 
+val map : f:(char -> char) -> t -> t
+(** [map f r] applies function [f] in turn to all the characters of
+   [r] (in increasing index order) and stores the results in a new
+   string that is returned. *)
+
+val mapi : f:(int -> char -> char) -> t -> t
+(** Same as [map] but the function [f] is passed the index [i] of the
+   char. *)
+
 
 val escaped : t -> t
   (** Return a copy of the argument, with special characters
