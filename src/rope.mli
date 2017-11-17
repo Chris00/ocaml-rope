@@ -49,6 +49,7 @@
     To use this library in the toploop (REPL), issue
     [#require "rope.top";;].
 
+    @version %%VERSION%%
     @author Christophe Troestler
 *)
 
