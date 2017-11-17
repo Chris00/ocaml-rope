@@ -658,6 +658,35 @@ let sub rope i len =
 (** String alike functions
  ***********************************************************************)
 
+let is_space = function
+  | ' ' | '\012' | '\n' | '\r' | '\t' -> true
+  | _ -> false
+
+let rec trim_left = function
+  | Sub(s, i0, len) ->
+     let i = ref i0 in
+     let i_max = i0 + len in
+     while !i < i_max && is_space (String.unsafe_get s !i) do incr i done;
+     if !i = i_max then empty else Sub(s, !i, i_max - !i)
+  | Concat(_, _, l, _, r) ->
+     let l = trim_left l in
+     if is_empty l then trim_left r
+     else let ll = length l in
+          Concat(1 + max (height l) (height r), ll + length r, l, ll, r)
+
+let rec trim_right = function
+  | Sub(s, i0, len) ->
+     let i = ref (i0 + len - 1) in
+     while !i >= i0 && is_space (String.unsafe_get s !i) do decr i done;
+     if !i < i0 then empty else Sub(s, i0, !i - i0 + 1)
+  | Concat(_, _, l, ll, r) ->
+     let r = trim_right r in
+     if is_empty r then trim_right l
+     else let lr = length r in
+          Concat(1 + max (height l) (height r), ll + lr, l, ll, r)
+
+let trim r = trim_right(trim_left r)
+
 (* Return the index of [c] in [s.[i .. i1-1]] plus the [offset] or
    [-1] if not found. *)
 let rec index_string offset s i i1 c =

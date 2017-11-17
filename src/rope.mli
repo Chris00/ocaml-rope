@@ -134,6 +134,10 @@ val mapi : f:(int -> char -> char) -> t -> t
 (** Same as [map] but the function [f] is passed the index [i] of the
    char. *)
 
+val trim : t -> t
+(** Return a copy of the argument, without leading and trailing
+   whitespace.  The characters regarded as whitespace are: [' '],
+   ['\012'], ['\n'], ['\r'], and ['\t']. *)
 
 val escaped : t -> t
   (** Return a copy of the argument, with special characters
