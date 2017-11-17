@@ -218,7 +218,7 @@ val search_forward_string : string -> t -> int -> int
       rope [r] and a start index [i0], will return the position of
       [p] in [r] or raise [Not_found] if no occurrence of [p] in [r]
       exists.  [let search = search_forward_string p] takes
-      O(length p) and [search r i0] takes O(length r - i0). *)
+      O(lengthÂ p) and [search r i0] takes O(length r - i0). *)
 
 
 (** {2 Input/output}
