@@ -694,6 +694,55 @@ let rec index_string offset s i i1 c =
   else if s.[i] = c then offset + i
   else index_string offset s (i+1) i1 c;;
 
+(* Escape the range s.[i0 .. i0+len-1].  Modeled after Bytes.escaped *)
+let escaped_sub s i0 len =
+  let n = ref 0 in
+  let i1 = i0 + len - 1 in
+  for i = i0 to i1 do
+    n := !n + (match String.unsafe_get s i with
+               | '\"' | '\\' | '\n' | '\t' | '\r' | '\b' -> 2
+               | ' ' .. '~' -> 1
+               | _ -> 4)
+  done;
+  if !n = len then Sub(s, i0, len) else (
+    let s' = Bytes.create !n in
+    n := 0;
+    for i = i0 to i1 do
+      (match String.unsafe_get s i with
+       | ('\"' | '\\') as c ->
+          Bytes.unsafe_set s' !n '\\'; incr n; Bytes.unsafe_set s' !n c
+       | '\n' ->
+          Bytes.unsafe_set s' !n '\\'; incr n; Bytes.unsafe_set s' !n 'n'
+       | '\t' ->
+          Bytes.unsafe_set s' !n '\\'; incr n; Bytes.unsafe_set s' !n 't'
+       | '\r' ->
+          Bytes.unsafe_set s' !n '\\'; incr n; Bytes.unsafe_set s' !n 'r'
+       | '\b' ->
+          Bytes.unsafe_set s' !n '\\'; incr n; Bytes.unsafe_set s' !n 'b'
+       | (' ' .. '~') as c -> Bytes.unsafe_set s' !n c
+       | c ->
+          let a = Char.code c in
+          Bytes.unsafe_set s' !n '\\';
+          incr n;
+          Bytes.unsafe_set s' !n (Char.chr (48 + a / 100));
+          incr n;
+          Bytes.unsafe_set s' !n (Char.chr (48 + (a / 10) mod 10));
+          incr n;
+          Bytes.unsafe_set s' !n (Char.chr (48 + a mod 10));
+      );
+      incr n
+    done;
+    Sub(Bytes.unsafe_to_string s', 0, !n)
+  )
+
+let rec escaped = function
+  | Sub(s, i0, len) -> escaped_sub s i0 len
+  | Concat(h, len, l, _, r) ->
+     let l = escaped l in
+     let ll = length l in
+     let r = escaped r in
+     Concat(h, ll + length r, l, ll, r)
+
 (* Return the index of [c] from position [i] in the rope or a negative
    value if not found *)
 let rec unsafe_index offset i c = function
@@ -753,21 +802,6 @@ let lowercase_ascii r = map ~f:Char.lowercase_ascii r
 let uppercase_ascii r = map ~f:Char.uppercase_ascii r
 let lowercase = lowercase_ascii
 let uppercase = uppercase_ascii
-
-(* FIXME: on could avoid doubly copying the string but it is
-   expected to be seldom used for heavy duty... *)
-let substring_escaped s i0 len =
-  String.escaped(String.sub s i0 len)
-
-let rec escaped = function
-  | Sub(s, i0, len) ->
-      let e = substring_escaped s i0 len in
-      Sub(e, 0, String.length e)
-  | Concat(h, _, l, ll, r) ->
-      let el = escaped l
-      and er = escaped r in
-      let ll = length el in
-      Concat(h, ll + length er, el, ll, er)
 
 let rec map1 f = function
   | Concat(h, len, l, ll, r) -> Concat(h, len, map1 f l, ll, r)
@@ -1284,7 +1318,13 @@ module Rope_toploop = struct
           printer_lim to_be_printed fm r
       | Sub(s, i0, len) ->
           let l = if len < max_len then len else max_len in
-          pp_print_string fm (substring_escaped s i0 l);
+          (match escaped_sub s i0 l with
+           | Sub (s, i0, len) ->
+              if i0 = 0 && len = String.length s then pp_print_string fm s
+              else for i = i0 to i0 + len - 1 do
+                     pp_print_char fm (String.unsafe_get s i)
+                   done
+           | Concat _ -> assert false);
           max_len - len
     else max_len
 
