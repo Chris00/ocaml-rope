@@ -4,7 +4,7 @@ WEB = rope.forge.ocamlcore.org:/home/groups/rope/htdocs
 SRC_WEB	= web
 
 all build:
-	jbuilder build @install #--dev
+	jbuilder build @install --dev
 	jbuilder build bench/bm_ropes.exe bench/bench_rope.exe
 
 test runtest:

@@ -318,21 +318,26 @@ module Iterator : sig
     (** [get itr] returns the character of the rope at the current
         position.  O(1) time.  This does not change the current position.
         @raise Out_of_bounds if the position is outside the rope. *)
+
   val peek : t -> int -> char
     (** [peek itr i] returns the character [i] of the rope.  If [i] is
         close to the current position of the iterator, this will in
         general be more efficient than [get rope i].  *)
+
   val pos : t -> int
     (** [pos itr] returns the current position.  It may not be a valid
         position of the rope.  O(1) time. *)
 
   val incr : t -> unit
     (** [incr itr] moves to the next character.  O(1) time. *)
+
   val decr : t -> unit
     (** [decr itr] moves to the previous character.  O(1) time.  *)
+
   val goto : t -> int -> unit
     (** [goto itr i] move to position [i].  O(1) time but the next
         call to [get] may be slower. *)
+
   val move : t -> int -> unit
     (** [mode itr i] move the current position by [i] chars ([i] may
         be negative or null).  O(1) time but the next call to [get]
@@ -358,10 +363,13 @@ module Buffer : sig
         parameter is the initial size of the internal rope that holds
         the buffer contents.  The buffer will grow dynamically to
         accomodate new inputs. *)
+
   val clear : t -> unit
     (** Empty the buffer. *)
+
   val reset : t -> unit
     (** Empty the buffer. *)
+
   val length : t -> int
     (** Return the number of characters currently contained in the buffer. *)
 
@@ -369,10 +377,12 @@ module Buffer : sig
     (** [add_char b c] appends the character [c] at the end of the
         buffer [b].
         @raise Failure if the length if the buffer exceeds [max_int]. *)
+
   val add_string : t -> string -> unit
     (** [add_string b s] appends the string [s] at the end of the
         buffer [b].
         @raise Failure if the length if the buffer exceeds [max_int]. *)
+
   val add_substring : t -> string -> int -> int -> unit
     (** [add_substring b s ofs len] takes [len] characters from offset
         [ofs] in string [s] and appends them at the end of the buffer
@@ -380,13 +390,16 @@ module Buffer : sig
         @raise Invalid_argument if [ofs] and [len] do not designate a
         valid substring of [s].
         @raise Failure if the length if the buffer exceeds [max_int]. *)
+
   val add_rope : t -> rope -> unit
     (** [add_rope b r] add the rope [r] to the buffer [b]. *)
+
   val add_channel : t -> in_channel -> int -> unit
     (** [add_channel b ic n] reads exactly [n] characters from the input
         channel [ic] and stores them at the end of buffer [b].
         @raise End_of_file if the channel contains fewer than [n]
         characters. *)
+
   val add_buffer : t -> t -> unit
     (** [add_buffer b1 b2] appends the current contents of buffer [b2]
         at the end of buffer [b1].  [b2] is not modified. *)
@@ -394,11 +407,13 @@ module Buffer : sig
   val contents : t -> rope
     (** Return a copy of the current contents of the buffer.
         The buffer itself is unchanged. *)
+
   val sub : t -> int -> int -> rope
     (** [sub b off len] returns a rope of the current contents of the
         buffer [b] starting at offset [off] of length [len] bytes.
         The buffer itself is unaffected.
         @raise Invalid_argument if out of bounds request.  *)
+
   val nth : t -> int -> char
     (** [nth b i] returns the [i]th character if the buffer.
         @raise Out_of_bounds if [i < 0] or [i >= length b].

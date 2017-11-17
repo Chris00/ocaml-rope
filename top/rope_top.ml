@@ -5,7 +5,7 @@ let eval_string ?(print_outcome = false)
   let phrase = !Toploop.parse_toplevel_phrase lexbuf in
   Toploop.execute_phrase print_outcome err_formatter phrase
 
-let rec install_printer p =
+let install_printer p =
   eval_string (Printf.sprintf "#install_printer %s;;" p)
 
 let () =

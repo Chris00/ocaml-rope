@@ -463,20 +463,10 @@ let rec relocate_topleft leaf len_leaf rope = match rope with
         let left = relocate_topleft leaf len_leaf l in
         Concat(h, len_leaf + len, left, len_leaf + ll, r)
 
-(* Try relocate the top leaf, if any *)
-let rec relocate_top rope = match rope with
-  | Concat(h, len, l,ll, (Sub(_,_,len_leaf) as leaf)) ->
-      (try relocate_topright l leaf len_leaf
-       with _ -> rope)
-  | Concat(h, len, (Sub(_,_,_) as leaf),len_leaf, r) ->
-      (try relocate_topleft leaf len_leaf r
-       with _ -> rope)
-  | _ -> rope
-;;
 
 (* We avoid copying too much -- as this may slow down access, even if
    height is lower. *)
-let rec concat2_nonempty rope1 rope2 =
+let concat2_nonempty rope1 rope2 =
   match rope1, rope2 with
   | Sub(s1,i1,len1), Sub(s2,i2,len2) ->
       let len = len1 + len2 in
@@ -591,9 +581,9 @@ let concat2 rope1 rope2 =
 (** [sub_to_substring flat j i len r] copies the subrope of [r]
     starting at character [i] and of length [len] to [flat.[j ..]]. *)
 let rec sub_to_substring flat j i len = function
-  | Sub(s, i0, lens) ->
+  | Sub(s, i0, _) ->
       Bytes.blit_string s (i0 + i) flat j len
-  | Concat(_, rope_len, l, ll, r) ->
+  | Concat(_, _, l, ll, r) ->
       let ri = i - ll in
       if ri >= 0 then (* only right branch *)
         sub_to_substring flat j ri len r
@@ -730,7 +720,7 @@ let escaped_sub s i0 len =
 
 let rec escaped = function
   | Sub(s, i0, len) -> escaped_sub s i0 len
-  | Concat(h, len, l, _, r) ->
+  | Concat(h, _, l, _, r) ->
      let l = escaped l in
      let ll = length l in
      let r = escaped r in
@@ -870,7 +860,7 @@ module Iterator = struct
         itr.current_g0 <- g0;
         itr.current_g1 <- g0 + len;
         itr.current_offset <- i0 - g0
-    | Concat(_, len, l,ll, r) ->
+    | Concat(_, _, l,ll, r) ->
         if i < ll then set_current_for_index_rec itr g0 i l
         else set_current_for_index_rec itr (g0 + ll) (i - ll) r
 
@@ -934,7 +924,7 @@ let compare r1 r2 =
   let i1 = Iterator.make r1 0
   and i2 = Iterator.make r2 0 in
   try
-    for i = 1 to min len1 len2 do (* on the common portion of [r1] and [r2] *)
+    for _i = 1 to min len1 len2 do (* on the common portion of [r1] and [r2] *)
       let c1 = Iterator.get i1 and c2 = Iterator.get i2 in
       if c1 < c2 then raise Less;
       if c1 > c2 then raise Greater;
@@ -957,7 +947,7 @@ let equal r1 r2 =
     let i1 = Iterator.make r1 0
     and i2 = Iterator.make r2 0 in
     try
-      for i = 1 to len1 do (* len1 times *)
+      for _i = 1 to len1 do (* len1 times *)
         if Iterator.get i1 <> Iterator.get i2 then raise Exit;
         Iterator.incr i1;
         Iterator.incr i2;
