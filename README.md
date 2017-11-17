@@ -13,24 +13,26 @@ The easier way to install this library is to use [opam][]:
 
     opam install rope
 
-To compile the development version, you will need to install [oasis][]
-and [ocamlbuild][] (comes with OCaml ≤ 4.02.3) first — say, using
-`opam install oasis` — and then issue
+To compile the development version, you will need to install [jbuilder][]
+and then issue
 
-    ocaml setup.ml -configure
-    ocaml setup.ml -build
+    jbuilder build @install
 
 Install with:
 
-    ocaml setup.ml -install
+    jbuilder install
+
+To run the tests, install the module [Benchmark][] and do
+
+    jbuilder runtest
 
 
 [opam]: http://opam.ocaml.org/
-[oasis]: http://oasis.forge.ocamlcore.org/
-[ocamlbuild]: http://opam.ocaml.org/packages/ocamlbuild/ocamlbuild.0/
+[jbuilder]: https://github.com/janestreet/jbuilder
+[benchmark]: https://github.com/Chris00/ocaml-benchmark
 
 Documentation
 -------------
 
 You can read the interface `rope.mli` [in this repository](src/rope.mli) or
-[as HTML](http://rope.forge.ocamlcore.org/).
+[as HTML](http://chris00.github.io/ocaml-rope/doc/rope/Rope/).
