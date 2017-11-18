@@ -16,6 +16,5 @@ depends: [
   "base-bytes"
   "jbuilder" {build}
   "benchmark" {test}
-  "ocamlfind" {build & >= "1.5"}
 ]
 available: [ocaml-version >= "4.03.0"]
