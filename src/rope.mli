@@ -28,7 +28,7 @@
 
     Features:
     - No length limitation (contrarily to strings);
-    - Immutability (use {!Rope.Buffer} instead);
+    - Immutability (use {!Rope.Buffer} for mutability.);
     - Efficient concatenation ({!Rope.concat2}) and splice
       ({!Rope.sub});
     - Share memory whenever possible.
