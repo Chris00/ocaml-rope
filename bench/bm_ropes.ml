@@ -65,15 +65,15 @@ let datapoints_ordered =
 (* just for laughs  *)
 let basic_loop_overhead =
   let t1 = Unix.gettimeofday () in
-    for j = 0 to 100 do
-      for i = 0 to n_ops do ignore () done
+    for _ = 0 to 100 do
+      for _ = 0 to n_ops do ignore () done
     done;
     (Unix.gettimeofday () -. t1) /. 100.0
 
 let random_loop_overhead =
   let t1 = Unix.gettimeofday () in
-    for j = 0 to 100 do
-      for i = 0 to n_ops do ignore (Random.int 10000) done;
+    for _ = 0 to 100 do
+      for _ = 0 to n_ops do ignore (Random.int 10000) done;
     done;
     (Unix.gettimeofday () -. t1) /. 100.0
 
@@ -150,7 +150,7 @@ struct
   let append_time size =
     let v = ref (make_rope size) in
     let t0 = Unix.gettimeofday () in
-    for i = 0 to n_ops - 1 do
+    for _ = 0 to n_ops - 1 do
       v := R.append 'z' !v;
       (* ignore (append_f I !v); *)
     done;
@@ -167,7 +167,7 @@ struct
 (*     Gc.full_major (); *)
     let t0 = Unix.gettimeofday () in
 (*     let sum = ref 0 in *)
-    for i = 0 to n_ops - 1 do
+    for _ = 0 to n_ops - 1 do
       ignore(R.get r (Random.int size));
     done;
     let dt = (Unix.gettimeofday () -. t0) in
@@ -183,7 +183,7 @@ struct
     let r = make_rope size in
     let t0 = Unix.gettimeofday () in
     let h = ref 0 in
-    for i = 0 to n_ops - 1 do
+    for _ = 0 to n_ops - 1 do
       h := !h + R.height(R.sub r 0 (Random.int size));
     done;
     let dt = (Unix.gettimeofday () -. t0) in
@@ -222,7 +222,7 @@ struct
   let do_qsort size =
     let nchunks = size / 100_000 in
     let data = ref R.empty in
-    for i = 1 to nchunks do
+    for _ = 1 to nchunks do
       data := R.concat !data
         (R.concat (R.of_string(sprintf "%08i" (Random.int nchunks)))
            bulk_string)

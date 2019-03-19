@@ -3,7 +3,7 @@ open Benchmark
 let empty = Rope.empty
 let ( ^^ ) = Rope.concat2
 
-let rec random_string len =
+let random_string len =
   let s = Bytes.create len in
   for i = 0 to len - 1 do Bytes.set s i (Char.chr(Random.int 255)) done;
   Bytes.unsafe_to_string s

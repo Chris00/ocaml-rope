@@ -69,7 +69,6 @@ let print =
 type forest_element = { mutable c : t; mutable len : int }
 
 let str_append = (^)
-let empty_str = ""
 let string_of_string_list l = String.concat "" l
 
 module STRING = String
@@ -99,7 +98,7 @@ let empty = Empty
 let is_empty = function Empty -> true | _ -> false
 
 
-let rec length = function
+let length = function
     Empty -> 0
   | Leaf s -> STRING.length s
   | Concat(_,cl,_,cr,_) -> cl + cr
@@ -222,15 +221,15 @@ let rec get i = function
   | Leaf s ->
       if i >= 0 && i < STRING.length s then STRING.unsafe_get s i
       else raise Out_of_bounds
-  | Concat (l, cl, r, cr, _) ->
+  | Concat (l, cl, r, _, _) ->
       if i < cl then get i l
       else get (i - cl) r
 
 let rec getn i = function
     Empty -> raise Out_of_bounds
-  | Leaf s ->
+  | Leaf _ ->
       0
-  | Concat (l, cl, r, cr, _) ->
+  | Concat (l, cl, r, _, _) ->
       if i < cl then 1 + getn i l else 1 + getn (i - cl) r
 
 
@@ -242,7 +241,7 @@ let rec set i v = function
         Bytes.unsafe_set s i v;
         Leaf (Bytes.unsafe_to_string s)
       else raise Out_of_bounds
-  | Concat(l, cl, r, cr, _) ->
+  | Concat(l, cl, r, _, _) ->
       if i < cl then concat (set i v l) r
       else concat l (set (i - cl) v r)
 
