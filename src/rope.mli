@@ -28,7 +28,7 @@
 
     Features:
     - No length limitation (contrarily to strings);
-    - Immutability (use {!Rope.Buffer} instead);
+    - Immutability (use {!Rope.Buffer} to incrementally build ropes);
     - Efficient concatenation ({!Rope.concat2}) and splice
       ({!Rope.sub});
     - Share memory whenever possible.
@@ -61,6 +61,8 @@ type rope = t (** Alias for type {!Rope.t} *)
 exception Out_of_bounds of string
   (** Raised by various functions to indicate out-of-bounds access.
       The string argument is the name of the function that raised it. *)
+
+(** {2 Basics (creation, access,...)} *)
 
 val empty : t
   (** The empty rope. *)
@@ -147,6 +149,8 @@ val escaped : t -> t
       represented by escape sequences, following the lexical
       conventions of Objective Caml. *)
 
+(** {2 Search char} *)
+
 val index : t -> char -> int
   (** [index r c] returns the position of the leftmost occurrence of
       character [c] in rope [r].
@@ -202,6 +206,19 @@ val rcontains_from : t -> int -> char -> bool
       [stop].
       @raise Invalid_argument if [stop] is not a valid index of [r]. *)
 
+
+(** {2 Search substring} *)
+
+val search_forward_string : string -> t -> int -> int
+  (** [search_forward_string p] is a search function that, given a
+      rope [r] and a start index [i0], will return the position of
+      [p] in [r] or raise [Not_found] if no occurrence of [p] in [r]
+      exists.  [let search = search_forward_string p] takes
+      O(length p) and [search r i0] takes O(length r - i0). *)
+
+
+(** {2 ASCII letter case} *)
+
 val uppercase_ascii : t -> t
 (** Return the argument with all lowercase letters translated to
    uppercase, including accented letters of the ISO Latin-1 (8859-1)
@@ -218,18 +235,6 @@ val capitalize_ascii : t -> t
 val uncapitalize_ascii : t -> t
 (** Return the argument with the first character set to lowercase. *)
 
-val compare: t -> t -> int
-  (** The comparison function for ropes, with the same specification
-      as [Pervasives.compare].  Along with the type [t], this function
-      [compare] allows the module {!Rope} to be passed as argument to
-      the functors [Set.Make] and [Map.Make]. *)
-
-val equal : t -> t -> bool
-  (** [equal r1 r2] tells whether the two ropes [r1] and [r2] are
-      equal.  (It is equivalent to [compare r1 r2 = 0], just slightly
-      faster.) *)
-
-
 val uppercase : t -> t    [@@ocaml.deprecated "Use Rope.uppercase_ascii"]
 (** @deprecated Use {!Rope.uppercase_ascii}. *)
 
@@ -243,14 +248,18 @@ val uncapitalize : t -> t [@@ocaml.deprecated "Use Rope.uncapitalize_ascii"]
 (** @deprecated Use {!Rope.uncapitalize_ascii}. *)
 
 
-(** {2 Search} *)
+(** {2 Ordering} *)
 
-val search_forward_string : string -> t -> int -> int
-  (** [search_forward_string p] is a search function that, given a
-      rope [r] and a start index [i0], will return the position of
-      [p] in [r] or raise [Not_found] if no occurrence of [p] in [r]
-      exists.  [let search = search_forward_string p] takes
-      O(length p) and [search r i0] takes O(length r - i0). *)
+val compare: t -> t -> int
+  (** The comparison function for ropes, with the same specification
+      as [Pervasives.compare].  Along with the type [t], this function
+      [compare] allows the module {!Rope} to be passed as argument to
+      the functors [Set.Make] and [Map.Make]. *)
+
+val equal : t -> t -> bool
+  (** [equal r1 r2] tells whether the two ropes [r1] and [r2] are
+      equal.  (It is equivalent to [compare r1 r2 = 0], just slightly
+      faster.) *)
 
 
 (** {2 Input/output}
@@ -310,7 +319,7 @@ val rebalancing_height : int
       greater or equal to [rebalancing_height]. *)
 
 
-(** {2 Submodules} *)
+(** {2 Iterator} *)
 
 (** Iterators for ropes.  It is more efficient to use an iterator to
     perform small steps and get the characters than to use {!Rope.get}
@@ -360,6 +369,7 @@ module Iterator : sig
 end
 
 
+(** {2 Buffer} *)
 
 (** This is similar to the [Buffer] module in the standard library
     except that it constructs ropes.  It is recommended to use this
@@ -431,12 +441,14 @@ module Buffer : sig
         Time: O(log(length b)). *)
 end
 
-(** TBD: Regular expressions for ropes. *)
-module Regexp : sig
+(* TBD: Regular expressions for ropes. *)
+(* module Regexp : sig *)
 
 
-end
+(* end *)
 
+
+(** {2 REPL} *)
 
 (** Toploop printer and its configuration. *)
 module Rope_toploop : sig

@@ -11,6 +11,8 @@ install uninstall:
 
 doc:
 	dune build @doc
+	sed -e "s/%%VERSION%%/$(PKGVERSION)/" --in-place \
+	  _build/default/_doc/_html/rope/Rope/index.html
 
 # Benchmarks
 bench:
