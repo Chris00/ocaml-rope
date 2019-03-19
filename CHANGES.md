@@ -1,3 +1,10 @@
+0.6.2 2019-03-19
+----------------
+
+- Improve the structure of the documentation.
+- Use [dune](https://github.com/ocaml/dune) to compile.
+- Upgrade to OPAM 2.
+
 0.6.1 2017-12-25
 ----------------
 
