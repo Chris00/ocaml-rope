@@ -15,22 +15,22 @@ The easier way to install this library is to use [opam][]:
 
     opam install rope
 
-To compile the development version, you will need to install [jbuilder][]
+To compile the development version, you will need to install [dune][]
 and then issue
 
-    jbuilder build @install
+    dune build @install
 
 Install with:
 
-    jbuilder install
+    dune install
 
 To run the tests, install the module [Benchmark][] and do
 
-    jbuilder runtest
+    dune runtest
 
 
 [opam]: http://opam.ocaml.org/
-[jbuilder]: https://github.com/janestreet/jbuilder
+[dune]: https://github.com/ocaml/dune
 [benchmark]: https://github.com/Chris00/ocaml-benchmark
 
 Documentation

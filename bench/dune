@@ -1,0 +1,13 @@
+(executables
+ (names     bench_rope bm_ropes)
+ (libraries rope benchmark))
+
+(alias
+ (name runtest)
+ (deps bench_rope.exe)
+ (action (run %{deps})))
+
+(alias
+ (name bench)
+ (deps bm_ropes.exe bm_ropes.plot)
+ (action (run %{deps})))
