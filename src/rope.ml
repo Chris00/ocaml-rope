@@ -885,20 +885,21 @@ module Iterator = struct
     itr
 
   let peek itr i =
-    if i < 0 || i >= itr.len then raise(Out_of_bounds "Rope.Iterator.peek")
-    else (
-      if itr.current_g0 <= i && i < itr.current_g1 then
-        itr.current.[i + itr.current_offset]
-      else
-        get itr.rope i (* rope get *)
-    )
+    if itr.current_g0 <= i && i < itr.current_g1 then
+      itr.current.[i + itr.current_offset]
+    else if i < 0 || i >= itr.len then
+      raise(Out_of_bounds "Rope.Iterator.peek")
+    else
+      get itr.rope i (* rope get *)
 
   let get itr =
     let i = itr.i in
-    if i < 0 || i >= itr.len then raise(Out_of_bounds "Rope.Iterator.get")
+    if itr.current_g0 <= i && i < itr.current_g1 then
+      itr.current.[i + itr.current_offset]
+    else if i < 0 || i >= itr.len then
+      raise(Out_of_bounds "Rope.Iterator.get")
     else (
-      if i < itr.current_g0 || i >= itr.current_g1 then
-        set_current_for_index itr; (* out of local bounds *)
+      set_current_for_index itr; (* out of local bounds *)
       itr.current.[i + itr.current_offset]
     )
 
