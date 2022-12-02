@@ -1288,7 +1288,7 @@ let rec length_leaves = function
 
 module IMap = Map.Make(struct
   type t = int
-  let compare = Pervasives.compare
+  let compare = Stdlib.compare
 end)
 
 let distrib_leaves =
