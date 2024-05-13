@@ -1,6 +1,5 @@
 (library
  (name        rope)
  (public_name rope)
- (libraries  bytes)
  (synopsis  "Ropes (heavyweight strings)"))
 
